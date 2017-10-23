@@ -1,0 +1,113 @@
+syntax = "proto3";
+package bean;  
+ /**
+单聊消息
+**/
+    message SingleMsg{
+     int64  fromUserId=1;//发送者账号id
+     int64  toUserId=2;//接收者账号id
+     string content=3;//消息内容
+	 string clientTime=4;//客户端发送消息时间
+	 string serverTime=5;//服务器接收消息时间
+	 string msgType=6;//消息类型文本、图片切片、图片结束、语音切片、语音结束
+	 int64  syncNum=7;//同步序号
+	 string msgId =8;//消息的唯一id，由客户端负责生成
+	 int32  deviceType=9;//发送消息的设备类型
+    }
+	 /**
+		群聊消息
+		**/
+	message GroupMsg{
+     int64 fromUserId=1;//发送者账号id
+     int64 toGroupId=2;//接收群id
+     string content=3;//消息内容
+	 string clientTime=4;//客户端发送消息时间
+	 string serverTime=5;//服务器接收消息时间
+	 string msgType=6;//消息类型文本、图片切片、图片结束、语音切片、语音结束
+	 int64  syncNum=7;//同步序号
+	 string msgId =8;//消息的唯一id，由客户端负责生成
+	 int32  deviceType=9;//发送消息的设备类型
+    }
+	/**
+	消息发送响应
+	**/
+	message MsgSendRes{
+		string msgId=1;//消息id
+		bool flag=2;//消息发送是否成功的标志
+	}
+	/**
+	消息请求
+	**/
+	message MsgReq{
+		int64 userId=1;//请求者消息id
+		int64 syncNum=2;//请求者客户端保存的已经读到的消息syncNum
+		int32 pageSize=3;//请求者读取多少条
+	}
+	/**
+	消息请求响应
+	**/
+	message MsgReqRes{
+		int64 syncNum=1;//读取到的syncNum
+		string msgList=2;//消息列表
+	}
+	/**
+	登录请求
+	**/
+	message LoginReq{
+		int64 uerId=1;
+		int32 deviceType=2;
+	}
+	/**
+	消息请求响应ack
+	**/
+	message MsgReqAck{
+		int64 userId=1;
+		int64 syncNum=2;
+	}
+	enum ProtocolTypeEnum {
+	    //proto3必须要有这个0
+	     UNKNOWN=0;
+		// 登录包
+		 LOGIN = 1;
+		 //心跳包
+		 PONG = 2;
+		//消息请求包
+		 MSG_REQ = 3;
+		//新消息通知包
+		 MSG_NOTIFY = 4;
+	     //消息请求响应包
+		MSG_REQ_RES=5;
+		//请求ack包
+		MSG_REQ_ACK = 6;
+		//单消息发送包
+		MSG_SEND_SINGLE = 7;
+		//群消息发送包
+		MSG_SEND_GROUP = 8;
+		//消息发送响应包
+		MSG_SEND_RES = 9;
+	}	
+	enum MsgTypeEnum{
+	 
+	     DEFAULT=0;
+		// 文本
+		 TEXT = 1;//文本不分片直接一次性发完
+		 EMOJI=2;//表情
+		 PUSHCMD=3;//这个说明这个是个指令，客户端可以解析具体的消息内容做相应的操作
+		 IMG = 4;//图片应该也是有分片的，这个和语音一样是直接上传到存储消息发地址还是分片通过通道待研究
+		//消息分片
+		 VOICE = 5;
+		//消息描述
+		 VOICE_DES =6;
+		
+	}
+    //协议
+	message Protocol{
+		//协议Id
+		int32 protocolType=1;//消息发送到逻辑层的知道，逻辑层要知道这个消息是具体的什么消息包，接入层是根据读取的两个字节判断的。
+		//协议内容，也就是消息内容
+		bytes protocolContent=2;
+		int64 userId=3;//逻辑层发到接入层的消息，要有userId找寻长连接通道
+	}
+	
+  
+    
