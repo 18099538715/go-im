@@ -10,7 +10,7 @@ package bean;
 	 string clientTime=4;//客户端发送消息时间
 	 string serverTime=5;//服务器接收消息时间
 	 string msgType=6;//消息类型文本、图片切片、图片结束、语音切片、语音结束
-	 int64  syncNum=7;//同步序号
+	 int64  syncKey=7;//同步序号
 	 string msgId =8;//消息的唯一id，由客户端负责生成
 	 int32  deviceType=9;//发送消息的设备类型
     }
@@ -24,7 +24,7 @@ package bean;
 	 string clientTime=4;//客户端发送消息时间
 	 string serverTime=5;//服务器接收消息时间
 	 string msgType=6;//消息类型文本、图片切片、图片结束、语音切片、语音结束
-	 int64  syncNum=7;//同步序号
+	 int64  syncKey=7;//同步序号
 	 string msgId =8;//消息的唯一id，由客户端负责生成
 	 int32  deviceType=9;//发送消息的设备类型
     }
@@ -40,14 +40,14 @@ package bean;
 	**/
 	message MsgReq{
 		int64 userId=1;//请求者消息id
-		int64 syncNum=2;//请求者客户端保存的已经读到的消息syncNum
+		int64 syncKey=2;//请求者客户端保存的已经读到的消息syncKey
 		int32 pageSize=3;//请求者读取多少条
 	}
 	/**
 	消息请求响应
 	**/
 	message MsgReqRes{
-		int64 syncNum=1;//读取到的syncNum
+		int64 syncKey=1;//读取到的syncKey
 		string msgList=2;//消息列表
 	}
 	/**
@@ -62,7 +62,14 @@ package bean;
 	**/
 	message MsgReqAck{
 		int64 userId=1;
-		int64 syncNum=2;
+		int64 syncKey=2;
+	}
+	/**
+	新消息通知
+	**/
+	message MsgInform{
+		int64 userId=1;
+		int64 syncKey=2;
 	}
 	enum ProtocolTypeEnum {
 	    //proto3必须要有这个0
@@ -74,7 +81,7 @@ package bean;
 		//消息请求包
 		 MSG_REQ = 3;
 		//新消息通知包
-		 MSG_NOTIFY = 4;
+		 MSG_INFORM = 4;
 	     //消息请求响应包
 		MSG_REQ_RES=5;
 		//请求ack包
@@ -101,12 +108,19 @@ package bean;
 		
 	}
     //协议
-	message Protocol{
+	message TcpProtocol{
 		//协议Id
-		int32 protocolType=1;//消息发送到逻辑层的知道，逻辑层要知道这个消息是具体的什么消息包，接入层是根据读取的两个字节判断的。
+		int32 protocolType=1;
 		//协议内容，也就是消息内容
 		bytes protocolContent=2;
-		int64 userId=3;//逻辑层发到接入层的消息，要有userId找寻长连接通道
+	}
+	    //协议
+	message UdpProtocol{
+		//协议Id
+		int32 protocolType=1;//消息发送到逻辑层的知道，逻辑层要知道这个消息是具体的什么消息包，接入层是根据读取的两个字节判断的。
+		bytes protocolContent=2;//协议内容，也就是消息内容
+		int64 toUuserId=3;//逻辑层发到接入层的消息，要有userId找寻长连接通道
+		string fromaddress  =4;//发送包的udpserver地址、端口 接入层发到逻辑层的消息带上方便找到回家的路
 	}
 	
   

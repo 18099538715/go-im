@@ -3,16 +3,14 @@ package server
 import (
 	"bean"
 	"fmt"
+	"handle"
 	"net"
+	"util"
 
 	"github.com/golang/protobuf/proto"
 )
 
-var UserCache map[int64]*net.TCPConn
-
-func init() {
-	fmt.Println("udpserver初始化")
-	UserCache = make(map[int64]*net.TCPConn)
+func StartUdpServer() {
 	go func() {
 		addr, err := net.ResolveUDPAddr("udp", ":9000")
 		if err != nil {
@@ -25,18 +23,20 @@ func init() {
 		defer udplisten.Close()
 		var buff = make([]byte, 10240)
 		for {
-			fmt.Println("开始读取")
 			n, _, err := udplisten.ReadFromUDP(buff)
 			if err != nil {
 				fmt.Println("udp接收包错误", err)
 			}
 			buffer := buff[0:n]
-			protocol := &bean.Protocol{}
-			fmt.Println("来自逻辑层的消息", protocol)
+			protocol := &bean.UdpProtocol{}
 			proto.Unmarshal(buffer, protocol)
 
-			if conn, ok := UserCache[protocol.GetUserId()]; ok {
-				conn.Write(protocol.GetProtocolContent())
+			if conn, ok := handle.UserCache[protocol.GetToUuserId()]; ok {
+				conn.Write(util.Unit16Tobyte(uint16(protocol.GetProtocolType())))
+				var l uint32 = uint32(len(protocol.GetProtocolContent()))
+
+				conn.Write(util.Unit32Tobyte(l))          //写入长度
+				conn.Write(protocol.GetProtocolContent()) //写入内容
 			} else {
 				fmt.Println("通道不存在")
 			}

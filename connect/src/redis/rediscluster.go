@@ -1,17 +1,20 @@
 package redis
 
 import (
+	"bean"
+	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/chasex/redis-go-cluster"
 )
 
-var Cluster *redis.Cluster
+var cluster *redis.Cluster
 
 func init() {
 	var err error
-	Cluster, err = redis.NewCluster(
+	cluster, err = redis.NewCluster(
 		&redis.Options{
 			StartNodes:   []string{"118.89.182.47:5000", "118.89.182.47:5001", "118.89.182.47:5002", "118.89.182.47:5003", "118.89.182.47:5004", "118.89.182.47:5005"},
 			ConnTimeout:  50 * time.Millisecond,
@@ -23,4 +26,8 @@ func init() {
 	if err != nil {
 		fmt.Println("redis集群初始化错误", err)
 	}
+}
+func SetOnlineUser(userInfo *bean.UserInfo) (interface{}, error) {
+	a, _ := json.Marshal(userInfo)
+	return cluster.Do("SET", "onlineinfo_"+strconv.FormatInt(userInfo.UserId, 10), a)
 }

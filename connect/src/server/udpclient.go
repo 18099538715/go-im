@@ -1,16 +1,14 @@
 package server
 
 import (
-	"bean"
 	"fmt"
+	"handle"
 	"net"
 
 	"github.com/golang/protobuf/proto"
 )
 
-var Udpchain = make(chan *bean.Protocol, 10000)
-
-func init() {
+func StartUdpClient() {
 	go func() {
 		conn, err := net.Dial("udp", "127.0.0.1:9001")
 		defer conn.Close()
@@ -18,8 +16,7 @@ func init() {
 			fmt.Println("udp客户端建立失败", err)
 		}
 		for {
-			tmp, _ := <-Udpchain
-			fmt.Println(tmp)
+			tmp, _ := <-handle.Udpchain
 			b, _ := proto.Marshal(tmp)
 			conn.Write(b)
 		}
