@@ -13,7 +13,7 @@ import (
 
 func StartTcpServer() {
 	go func() {
-		addr, err := net.ResolveTCPAddr("tcp", ":8888")
+		addr, err := net.ResolveTCPAddr("tcp", "192.168.31.248:8888")
 		listen, err := net.ListenTCP("tcp", addr)
 		if err != nil {
 			fmt.Println("listen error: ", addr)

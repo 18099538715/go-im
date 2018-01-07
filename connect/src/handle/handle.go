@@ -31,6 +31,7 @@ func Handle(msg *bean.TcpProtocol, conn *net.TCPConn) {
 登录的处理
 **/
 func loginHandle(msg *bean.TcpProtocol, conn *net.TCPConn) {
+
 	loginMsg := &bean.LoginReq{}
 	err := proto.Unmarshal(msg.GetProtocolContent(), loginMsg)
 	if err != nil {
@@ -44,6 +45,7 @@ func loginHandle(msg *bean.TcpProtocol, conn *net.TCPConn) {
 		conn.Close()
 		return
 	}
+	fmt.Println("用户登录:", loginMsg.GetUerId())
 	UserCache[loginMsg.GetUerId()] = conn
 }
 
