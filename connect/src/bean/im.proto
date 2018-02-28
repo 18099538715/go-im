@@ -42,13 +42,14 @@ package bean;
 		int64 userId=1;//请求者消息id
 		int64 syncKey=2;//请求者客户端保存的已经读到的消息syncKey
 		int32 pageSize=3;//请求者读取多少条
+		int32 currentPage=4;//当前页
 	}
 	/**
 	消息请求响应
 	**/
 	message MsgReqRes{
 		int64 syncKey=1;//读取到的syncKey
-		string msgList=2;//消息列表
+		repeated SingleMsg msgs=2;//消息列表
 	}
 	/**
 	登录请求
@@ -109,7 +110,7 @@ package bean;
 	}
     //协议
 	message TcpProtocol{
-		//协议Id
+		//协议Id ProtocolTypeEnum里的值
 		int32 protocolType=1;
 		//协议内容，也就是消息内容
 		bytes protocolContent=2;

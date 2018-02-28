@@ -4,7 +4,7 @@ import (
 	"bean"
 	"fmt"
 	"net"
-	"redis"
+	"rediscache"
 
 	"github.com/golang/protobuf/proto"
 )
@@ -36,10 +36,11 @@ func loginHandle(msg *bean.TcpProtocol, conn *net.TCPConn) {
 	err := proto.Unmarshal(msg.GetProtocolContent(), loginMsg)
 	if err != nil {
 		fmt.Println("解码消息出错", err)
+		conn.Close()
 		return
 	}
 	u := &bean.UserInfo{UserId: loginMsg.GetUerId(), DeviceType: loginMsg.GetDeviceType(), Onlineaddr: "127.0.0.1:9000"}
-	_, err = redis.SetOnlineUser(u)
+	_, err = rediscache.SetOnlineUser(u)
 	if err != nil {
 		fmt.Println("登录出错", err)
 		conn.Close()
