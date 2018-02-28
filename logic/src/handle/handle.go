@@ -4,7 +4,7 @@ import (
 	"bean"
 	"fmt"
 	"net"
-	"redis"
+	"rediscache"
 
 	"github.com/golang/protobuf/proto"
 )
@@ -25,7 +25,7 @@ func Handle(msg *bean.UdpProtocol) {
 }
 
 /**
-消息请求ack，用户拉取万消息给个ack，更新用户的syncKey
+消息请求ack，用户拉取完消息给个ack，更新用户的syncKey
 **/
 func msgReqAck(protocol *bean.UdpProtocol) {
 	msg := &bean.MsgReqAck{}
@@ -33,7 +33,7 @@ func msgReqAck(protocol *bean.UdpProtocol) {
 	if err != nil {
 		fmt.Println("reqAck解析包出错", err)
 	}
-	err = redis.SetCurrentUserSynckey(msg.GetUserId(), msg.GetSyncKey())
+	err = rediscache.SetCurrentUserSynckey(msg.GetUserId(), msg.GetSyncKey())
 	if err != nil {
 		fmt.Println("更新用户syncKey出错")
 	}
@@ -50,16 +50,37 @@ func msgReq(protocol *bean.UdpProtocol) {
 		return
 	}
 	synckeys := make([]int64, msg.GetPageSize())
-	redis.GetUserMsgs(msg.GetUserId(), synckeys)
+	currentSyncKey, err := rediscache.GetCurrentUserSynckey(msg.GetUserId())
+	if err != nil {
+		fmt.Println("拉取用户消息出错", err)
+		return
+	}
+	for index, _ := range synckeys {
+		synckeys[index] = currentSyncKey + int64(index+1)
+	}
+	msgs, err := rediscache.GetUserMsgs(msg.GetUserId(), synckeys)
+	if err != nil {
+		fmt.Println("拉取用户消息出错", err)
+		return
+	}
+	msgReqRes := &bean.MsgReqRes{}
+	msgReqRes.Msgs = msgs
+	content, err := proto.Marshal(msgReqRes)
+	if err != nil {
+		fmt.Println("拉取用户消息出错", err)
+		return
+	}
+	protocolRes := &bean.UdpProtocol{ToUuserId: msg.GetUserId(), ProtocolContent: content, ProtocolType: int32(bean.ProtocolTypeEnum_MSG_REQ_RES)}
+	b, err := proto.Marshal(protocolRes)
+	if err != nil {
+		fmt.Println("拉取用户消息出错", err)
+		return
+	}
 	udpclient, err := net.Dial("udp", protocol.GetFromaddress())
-	defer udpclient.Close()
 	if err != nil {
 		fmt.Println("udp客户端建立失败", err)
 	}
-	msgReqRes := &bean.MsgReqRes{}
-	content, _ := proto.Marshal(msgReqRes)
-	protocolRes := &bean.UdpProtocol{ToUuserId: msg.GetUserId(), ProtocolContent: content, ProtocolType: int32(bean.ProtocolTypeEnum_MSG_REQ_RES)}
-	b, _ := proto.Marshal(protocolRes)
+	defer udpclient.Close()
 	udpclient.Write(b)
 	udpclient.Close()
 }
@@ -78,14 +99,14 @@ func singleMsg(protocol *bean.UdpProtocol) {
 	singleMsg := &bean.SingleMsg{}
 	proto.Unmarshal(protocol.GetProtocolContent(), singleMsg)
 	fmt.Println("传过来的消息", singleMsg)
-	syncKey, err := redis.IncrUserSynckey(singleMsg.GetToUserId())
+	syncKey, err := rediscache.IncrUserSynckey(singleMsg.GetToUserId())
 	if err != nil {
 		fmt.Println("syncKey自增失败", err)
 		msgSendRes(singleMsg.GetFromUserId(), protocol.GetFromaddress(), singleMsg.GetMsgId(), false)
 		return
 	}
 	singleMsg.SyncKey = syncKey
-	err = redis.SetUserSingleMsg(singleMsg)
+	err = rediscache.SetUserSingleMsg(singleMsg)
 	if err != nil {
 		fmt.Println("保存消息失败", err)
 		msgSendRes(singleMsg.GetFromUserId(), protocol.GetFromaddress(), singleMsg.GetMsgId(), false)
@@ -119,7 +140,7 @@ func msgSendRes(userId int64, addreess string, msgId string, flag bool) {
 新消息通知
 **/
 func msgInform(userId int64, syncKey int64) {
-	u := redis.GetOnlineUser(userId)
+	u := rediscache.GetOnlineUser(userId)
 	if u == nil {
 		fmt.Println("用户不在线", userId)
 		return

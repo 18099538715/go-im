@@ -1,4 +1,4 @@
-package redis
+package rediscache
 
 import (
 	"bean"
@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/chasex/redis-go-cluster"
+	"github.com/golang/protobuf/proto"
 )
 
 var cluster *redis.Cluster
@@ -52,13 +53,28 @@ func SetCurrentUserSynckey(userId int64, syncKey int64) error {
 	_, err := cluster.Do("SET", "currentSynckey_"+strconv.FormatInt(userId, 10), syncKey)
 	return err
 }
-func GetUserMsgs(userId int64, syncKeys []int64) {
+func GetUserMsgs(userId int64, syncKeys []int64) ([]*bean.SingleMsg, error) {
 
-	redis.Values(cluster.Do("HGET", "usermsgs_"+strconv.FormatInt(userId, 10), syncKeys))
+	msgs, err := redis.Values(cluster.Do("HMGET", "usermsgs_"+strconv.FormatInt(userId, 10), syncKeys))
+	if err != nil {
+		return nil, err
+
+	}
+	singleMsgs := make([]*bean.SingleMsg, len(msgs))
+	for index, singleMsg := range msgs {
+		s := &bean.SingleMsg{}
+		err := proto.Unmarshal(singleMsg.([]byte), s)
+		if err != nil {
+			return nil, err
+		}
+		singleMsgs[index] = s
+
+	}
+	return singleMsgs, nil
 
 }
 func SetUserSingleMsg(msg *bean.SingleMsg) error {
-	b, err := json.Marshal(msg)
+	b, err := proto.Marshal(msg)
 	if err != nil {
 		return err
 	}
