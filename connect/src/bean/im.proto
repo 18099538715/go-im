@@ -1,127 +1,177 @@
 syntax = "proto3";
 package bean;  
- /**
-单聊消息
-**/
+ /*单聊消息*/
     message SingleMsg{
-     int64  fromUserId=1;//发送者账号id
-     int64  toUserId=2;//接收者账号id
-     string content=3;//消息内容
-	 string clientTime=4;//客户端发送消息时间
-	 string serverTime=5;//服务器接收消息时间
-	 string msgType=6;//消息类型文本、图片切片、图片结束、语音切片、语音结束
-	 int64  syncKey=7;//同步序号
-	 string msgId =8;//消息的唯一id，由客户端负责生成
-	 int32  deviceType=9;//发送消息的设备类型
+	 //发送者账号id
+     int64  fromUserId=1;
+	 //接收者账号id
+     int64  toUserId=2;
+	//消息内容
+     string content=3;
+	//客户端发送消息时间戳
+	 int64 sendTimestamp=4;
+	//服务器接收消息时间戳
+	 int64 receiveTimestamp=5;
+	//消息类型文本、图片切片、图片结束、语音切片、语音结束
+	 int32 msgType=6;
+	//消息序号
+	 int64  srlNo=7;
+	//消息的唯一id，由客户端负责生成
+	 string msgId =8;
+	//发送消息的设备类型
+	 int32  deviceType=9;
     }
-	 /**
-		群聊消息
-		**/
+	 /*群聊消息*/
 	message GroupMsg{
-     int64 fromUserId=1;//发送者账号id
-     int64 toGroupId=2;//接收群id
-     string content=3;//消息内容
-	 string clientTime=4;//客户端发送消息时间
-	 string serverTime=5;//服务器接收消息时间
-	 string msgType=6;//消息类型文本、图片切片、图片结束、语音切片、语音结束
-	 int64  syncKey=7;//同步序号
-	 string msgId =8;//消息的唯一id，由客户端负责生成
-	 int32  deviceType=9;//发送消息的设备类型
+     //发送者账号id
+     int64 fromUserId=1;
+     //接收群id
+     int64 toGroupId=2;
+     //消息内容
+     string content=3;
+	 //客户端发送消息时间戳
+	 int64 sendTimestamp=4;
+	 //服务器接收消息时间戳
+	 int64 receiveTimestamp=5;
+	 //消息类型文本、图片切片、图片结束、语音切片、语音结束
+	 int32 msgType=6;
+	 //消息序号
+	 int64  srlNo=7;
+	 //消息的唯一id，由客户端负责生成
+	 string msgId =8;
+	 //发送消息的设备类型
+	 int32  deviceType=9;
     }
-	/**
-	消息发送响应
-	**/
+	/*消息发送响应**/
 	message MsgSendRes{
-		string msgId=1;//消息id
-		bool flag=2;//消息发送是否成功的标志
+		//消息id
+		string msgId=1;
+		//消息发送是否成功的标志
+		bool flag=2;
+		//服务器响应时间戳
+		int64 timestamp=3;
 	}
-	/**
-	消息请求
-	**/
+	/*消息请求*/
 	message MsgReq{
-		int64 userId=1;//请求者消息id
-		int64 syncKey=2;//请求者客户端保存的已经读到的消息syncKey
-		int32 pageSize=3;//请求者读取多少条
-		int32 currentPage=4;//当前页
-	}
-	/**
-	消息请求响应
-	**/
-	message MsgReqRes{
-		int64 syncKey=1;//读取到的syncKey
-		repeated SingleMsg msgs=2;//消息列表
-	}
-	/**
-	登录请求
-	**/
-	message LoginReq{
-		int64 uerId=1;
-		int32 deviceType=2;
-	}
-	/**
-	消息请求响应ack
-	**/
-	message MsgReqAck{
+		//请求者消息id
 		int64 userId=1;
-		int64 syncKey=2;
+		//请求者客户端保存的已经读到的消息序号
+		int64 srlNo=2;
+		//请求者读取多少条
+		int32 pageSize=3;
+		//当前页
+		int32 currentPage=4;
+		//请求时间戳
+		int64 timestamp=5;
 	}
-	/**
-	新消息通知
-	**/
+	/*消息请求响应*/
+	message MsgReqRes{
+		//本次读取到的序号
+		int64 srlNo=1;
+		//消息列表
+		repeated SingleMsg msgs=2;
+		//响应时间戳
+		int64 timestamp=3;
+	}
+	/*登录请求*/
+	message LoginReq{
+		int64 userId=1;
+		int32 deviceType=2;
+		//请求时间戳
+		int64 timestamp=3;
+		//用户token
+		string token=4;
+	}
+	/*登录响应*/
+	message LoginRes{
+		//登录是否成功标识
+		bool flag=1;
+		//服务器响应时间戳
+		int64 timestamp=2;
+	}
+	/*消息请求响应ack*/
+	message MsgReqAck{
+		//用户id
+		int64 userId=1;
+		//本地已经拉取到的消息序号
+		int64 srlNo=2;
+		//ack时间戳
+		int64 timestamp=3;
+	}
+	/*新消息通知*/
 	message MsgInform{
 		int64 userId=1;
-		int64 syncKey=2;
+		//最新的消息序号
+		int64 srlNo=2;
+		//通知时间戳
+		int64 timestamp=3;
 	}
-	enum ProtocolTypeEnum {
-	    //proto3必须要有这个0
+	enum PkgTypeEnum {
+	    //proto3必须要有这个0,但实际用不到
 	     UNKNOWN=0;
 		// 登录包
-		 LOGIN = 1;
+		 LOGIN_REQ = 1;
 		 //心跳包
-		 PONG = 2;
+		 PING = 2;
+		//心跳响应包
+		 PONG=3;
 		//消息请求包
-		 MSG_REQ = 3;
+		 MSG_REQ = 4;
 		//新消息通知包
-		 MSG_INFORM = 4;
-	     //消息请求响应包
-		MSG_REQ_RES=5;
+		 MSG_INFORM = 5;
+	    //消息请求响应包
+		MSG_REQ_RES=6;
 		//请求ack包
-		MSG_REQ_ACK = 6;
+		MSG_REQ_ACK = 7;
 		//单消息发送包
-		MSG_SEND_SINGLE = 7;
+		MSG_SEND_SINGLE = 8;
 		//群消息发送包
-		MSG_SEND_GROUP = 8;
+		MSG_SEND_GROUP = 9;
 		//消息发送响应包
-		MSG_SEND_RES = 9;
-	}	
+		MSG_SEND_RES = 10;
+		//登录响应包
+		LOGIN_RES=11;
+	}
+	/*消息类型*/	
 	enum MsgTypeEnum{
 	 
 	     DEFAULT=0;
 		// 文本
-		 TEXT = 1;//文本不分片直接一次性发完
-		 EMOJI=2;//表情
-		 PUSHCMD=3;//这个说明这个是个指令，客户端可以解析具体的消息内容做相应的操作
-		 IMG = 4;//图片应该也是有分片的，这个和语音一样是直接上传到存储消息发地址还是分片通过通道待研究
+		 TEXT = 1;
+		//表情
+		 EMOJI=2;
+		//这个说明这个是个指令，客户端可以解析具体的消息内容做相应的操作
+		 PUSHCMD=3;
+		//图片应该也是有分片的，这个和语音一样是直接上传到存储消息发地址还是分片通过通道待研究
+		 IMG = 4;
 		//消息分片
 		 VOICE = 5;
-		//消息描述
+		//语音描述
 		 VOICE_DES =6;
 		
 	}
-    //协议
-	message TcpProtocol{
-		//协议Id ProtocolTypeEnum里的值
-		int32 protocolType=1;
-		//协议内容，也就是消息内容
-		bytes protocolContent=2;
+	/*设备类型*/
+	enum DeviceTypeEnum{
+		 TMP=0;
+		 ANDROID = 1;
+		 IOS=2;
+		 PC=3;
 	}
-	    //协议
-	message UdpProtocol{
-		//协议Id
-		int32 protocolType=1;//消息发送到逻辑层的知道，逻辑层要知道这个消息是具体的什么消息包，接入层是根据读取的两个字节判断的。
-		bytes protocolContent=2;//协议内容，也就是消息内容
-		int64 toUuserId=3;//逻辑层发到接入层的消息，要有userId找寻长连接通道
-		string fromaddress  =4;//发送包的udpserver地址、端口 接入层发到逻辑层的消息带上方便找到回家的路
+    /*Tcp消息包*/
+	message TcpProtPkg{
+		//包类型PacTypeEnum里的值
+		int32 pkgType=1;
+		//协议内容，也就是消息内容
+		bytes content=2;
+	}
+	/*udp消息包*/
+	message UdpProtPkg{
+		//包类型
+		int32 pkgType=1;
+		//协议内容，也就是消息内容
+		bytes content=2;
+		//逻辑层发到接入层的消息，要有userId找寻长连接通道
+		int64 toUserId=3;
 	}
 	
   

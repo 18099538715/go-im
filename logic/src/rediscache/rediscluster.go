@@ -13,6 +13,7 @@ import (
 
 var cluster *redis.Cluster
 
+const msgExpireTime int64 = 60 * 60 * 24 * 7 //缓存消息7天过期
 func init() {
 	var err error
 	cluster, err = redis.NewCluster(
@@ -42,20 +43,25 @@ func GetOnlineUser(userId int64) *bean.UserInfo {
 	}
 	return u
 }
-func IncrUserSynckey(userId int64) (int64, error) {
-	return redis.Int64(cluster.Do("INCR", "synckey_"+strconv.FormatInt(userId, 10)))
+func IncrUserSrlNo(userId int64) (int64, error) {
+	return redis.Int64(cluster.Do("INCR", "srlNo_"+strconv.FormatInt(userId, 10)))
 }
 
-func GetCurrentUserSynckey(userId int64) (int64, error) {
-	return redis.Int64(cluster.Do("GET", "currentSynckey_"+strconv.FormatInt(userId, 10)))
+func GetCurrentUserSrlNo(userId int64) (int64, error) {
+	return redis.Int64(cluster.Do("GET", "currentSrlNo_"+strconv.FormatInt(userId, 10)))
 }
-func SetCurrentUserSynckey(userId int64, syncKey int64) error {
-	_, err := cluster.Do("SET", "currentSynckey_"+strconv.FormatInt(userId, 10), syncKey)
+func SetCurrentUserSrlNo(userId int64, srlNo int64) error {
+	_, err := cluster.Do("SET", "currentSrlNo_"+strconv.FormatInt(userId, 10), srlNo)
 	return err
 }
-func GetUserMsgs(userId int64, syncKeys []int64) ([]*bean.SingleMsg, error) {
-
-	msgs, err := redis.Values(cluster.Do("HMGET", "usermsgs_"+strconv.FormatInt(userId, 10), syncKeys))
+func GetUserMsgs(userId int64, srlNos []int64) ([]*bean.SingleMsg, error) {
+	ids := make([]interface{}, len(srlNos))
+	for index, _ := range ids {
+		ids[index] = "{usermsgs_" + strconv.FormatInt(userId, 10) + "}_" + strconv.FormatInt(srlNos[index], 10)
+	}
+	fmt.Println(len(ids))
+	msgs, err := redis.Values(cluster.Do("MGET", ids...))
+	fmt.Println("用户消息", msgs)
 	if err != nil {
 		return nil, err
 
@@ -63,21 +69,24 @@ func GetUserMsgs(userId int64, syncKeys []int64) ([]*bean.SingleMsg, error) {
 	singleMsgs := make([]*bean.SingleMsg, len(msgs))
 	for index, singleMsg := range msgs {
 		s := &bean.SingleMsg{}
-		err := proto.Unmarshal(singleMsg.([]byte), s)
-		if err != nil {
-			return nil, err
+		if singleMsg != nil {
+			err := proto.Unmarshal(singleMsg.([]byte), s)
+			if err != nil {
+				return nil, err
+			}
+			singleMsgs[index] = s
 		}
-		singleMsgs[index] = s
-
 	}
 	return singleMsgs, nil
 
 }
 func SetUserSingleMsg(msg *bean.SingleMsg) error {
+
 	b, err := proto.Marshal(msg)
 	if err != nil {
 		return err
 	}
-	_, err = cluster.Do("HSET", "usermsgs_"+strconv.FormatInt(msg.ToUserId, 10), msg.SyncKey, b)
+	_, err = cluster.Do("SETEX", "{usermsgs_"+strconv.FormatInt(msg.ToUserId, 10)+"}_"+strconv.FormatInt(msg.SrlNo, 10), msgExpireTime, b)
+	fmt.Println("保存消息", err, msg)
 	return err
 }

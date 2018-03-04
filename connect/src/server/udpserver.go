@@ -2,9 +2,11 @@ package server
 
 import (
 	"bean"
+	"conf"
 	"fmt"
 	"handle"
 	"net"
+	"strconv"
 	"util"
 
 	"github.com/golang/protobuf/proto"
@@ -12,35 +14,68 @@ import (
 
 func StartUdpServer() {
 	go func() {
-		addr, err := net.ResolveUDPAddr("udp", ":9000")
+		udpServerPort := conf.ConfMap["udpserverport"]
+		fmt.Println(udpServerPort)
+
+		addr, err := net.ResolveUDPAddr("udp", ":"+udpServerPort)
 		if err != nil {
-			fmt.Println("", err)
+			fmt.Println("建立连接失败", err)
 		}
 		udplisten, err := net.ListenUDP("udp", addr)
 		if err != nil {
 			fmt.Println("", err)
 		}
-		defer udplisten.Close()
-		var buff = make([]byte, 10240)
-		for {
-			n, _, err := udplisten.ReadFromUDP(buff)
-			if err != nil {
-				fmt.Println("udp接收包错误", err)
-			}
-			buffer := buff[0:n]
-			protocol := &bean.UdpProtocol{}
-			proto.Unmarshal(buffer, protocol)
+		go receive(udplisten)
+		go send(udplisten)
 
-			if conn, ok := handle.UserCache[protocol.GetToUuserId()]; ok {
-				conn.Write(util.Unit16Tobyte(uint16(protocol.GetProtocolType())))
-				var l uint32 = uint32(len(protocol.GetProtocolContent()))
-
-				conn.Write(util.Unit32Tobyte(l))          //写入长度
-				conn.Write(protocol.GetProtocolContent()) //写入内容
-			} else {
-				fmt.Println("通道不存在")
-			}
-
-		}
 	}()
+}
+func receive(udpconn *net.UDPConn) {
+	var buff = make([]byte, 10240)
+	for {
+		n, _, err := udpconn.ReadFromUDP(buff)
+		if err != nil {
+			fmt.Println("udp接收包错误", err)
+			continue
+		}
+		buffer := buff[0:n]
+		pkg := &bean.UdpProtPkg{}
+		err = proto.Unmarshal(buffer, pkg)
+		if err != nil {
+			fmt.Println("udp接收包错误", err)
+			continue
+		}
+		tcpPkg := &bean.TcpProtPkg{PkgType: pkg.PkgType, Content: pkg.Content}
+		if conn, ok := handle.UserCache[pkg.GetToUserId()]; ok {
+			b, _ := proto.Marshal(tcpPkg)
+			var l uint32 = uint32(len(b))
+			conn.Write(util.Unit32Tobyte(l)) //写入长度
+			conn.Write(b)                    //写入内容
+		} else {
+			fmt.Println("通道不存在")
+		}
+
+	}
+}
+func send(conn *net.UDPConn) {
+	udpRemotePort, err := strconv.ParseInt(conf.ConfMap["udpremoteport"], 10, 64)
+	if err != nil {
+		fmt.Println("远程udp失败")
+	}
+	udpRemoteAddr := conf.ConfMap["udpremoteaddr"]
+	ip := net.ParseIP(udpRemoteAddr)
+	udpAddr := &net.UDPAddr{
+		IP:   ip,
+		Port: int(udpRemotePort),
+	}
+	for {
+		tmp, ok := <-handle.Udpchan
+		if !ok {
+			fmt.Println("udpchain获取消息失败")
+			continue
+		}
+		b, _ := proto.Marshal(tmp)
+		conn.WriteToUDP(b, udpAddr)
+		fmt.Println("往逻辑层发送消息")
+	}
 }

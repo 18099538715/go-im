@@ -1,0 +1,6 @@
+{
+"udpremoteaddr": "127.0.0.1",
+"udpremoteport": "9001",
+"udpserverport": "9000",
+"tcpserverport": "8888"
+}

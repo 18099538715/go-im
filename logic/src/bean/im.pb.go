@@ -14,10 +14,11 @@ It has these top-level messages:
 	MsgReq
 	MsgReqRes
 	LoginReq
+	LoginRes
 	MsgReqAck
 	MsgInform
-	TcpProtocol
-	UdpProtocol
+	TcpProtPkg
+	UdpProtPkg
 */
 package bean
 
@@ -36,73 +37,85 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type ProtocolTypeEnum int32
+type PkgTypeEnum int32
 
 const (
-	// proto3必须要有这个0
-	ProtocolTypeEnum_UNKNOWN ProtocolTypeEnum = 0
+	// proto3必须要有这个0,但实际用不到
+	PkgTypeEnum_UNKNOWN PkgTypeEnum = 0
 	// 登录包
-	ProtocolTypeEnum_LOGIN ProtocolTypeEnum = 1
+	PkgTypeEnum_LOGIN_REQ PkgTypeEnum = 1
 	// 心跳包
-	ProtocolTypeEnum_PONG ProtocolTypeEnum = 2
+	PkgTypeEnum_PING PkgTypeEnum = 2
+	// 心跳响应包
+	PkgTypeEnum_PONG PkgTypeEnum = 3
 	// 消息请求包
-	ProtocolTypeEnum_MSG_REQ ProtocolTypeEnum = 3
+	PkgTypeEnum_MSG_REQ PkgTypeEnum = 4
 	// 新消息通知包
-	ProtocolTypeEnum_MSG_INFORM ProtocolTypeEnum = 4
+	PkgTypeEnum_MSG_INFORM PkgTypeEnum = 5
 	// 消息请求响应包
-	ProtocolTypeEnum_MSG_REQ_RES ProtocolTypeEnum = 5
+	PkgTypeEnum_MSG_REQ_RES PkgTypeEnum = 6
 	// 请求ack包
-	ProtocolTypeEnum_MSG_REQ_ACK ProtocolTypeEnum = 6
+	PkgTypeEnum_MSG_REQ_ACK PkgTypeEnum = 7
 	// 单消息发送包
-	ProtocolTypeEnum_MSG_SEND_SINGLE ProtocolTypeEnum = 7
+	PkgTypeEnum_MSG_SEND_SINGLE PkgTypeEnum = 8
 	// 群消息发送包
-	ProtocolTypeEnum_MSG_SEND_GROUP ProtocolTypeEnum = 8
+	PkgTypeEnum_MSG_SEND_GROUP PkgTypeEnum = 9
 	// 消息发送响应包
-	ProtocolTypeEnum_MSG_SEND_RES ProtocolTypeEnum = 9
+	PkgTypeEnum_MSG_SEND_RES PkgTypeEnum = 10
+	// 登录响应包
+	PkgTypeEnum_LOGIN_RES PkgTypeEnum = 11
 )
 
-var ProtocolTypeEnum_name = map[int32]string{
-	0: "UNKNOWN",
-	1: "LOGIN",
-	2: "PONG",
-	3: "MSG_REQ",
-	4: "MSG_INFORM",
-	5: "MSG_REQ_RES",
-	6: "MSG_REQ_ACK",
-	7: "MSG_SEND_SINGLE",
-	8: "MSG_SEND_GROUP",
-	9: "MSG_SEND_RES",
+var PkgTypeEnum_name = map[int32]string{
+	0:  "UNKNOWN",
+	1:  "LOGIN_REQ",
+	2:  "PING",
+	3:  "PONG",
+	4:  "MSG_REQ",
+	5:  "MSG_INFORM",
+	6:  "MSG_REQ_RES",
+	7:  "MSG_REQ_ACK",
+	8:  "MSG_SEND_SINGLE",
+	9:  "MSG_SEND_GROUP",
+	10: "MSG_SEND_RES",
+	11: "LOGIN_RES",
 }
-var ProtocolTypeEnum_value = map[string]int32{
+var PkgTypeEnum_value = map[string]int32{
 	"UNKNOWN":         0,
-	"LOGIN":           1,
-	"PONG":            2,
-	"MSG_REQ":         3,
-	"MSG_INFORM":      4,
-	"MSG_REQ_RES":     5,
-	"MSG_REQ_ACK":     6,
-	"MSG_SEND_SINGLE": 7,
-	"MSG_SEND_GROUP":  8,
-	"MSG_SEND_RES":    9,
+	"LOGIN_REQ":       1,
+	"PING":            2,
+	"PONG":            3,
+	"MSG_REQ":         4,
+	"MSG_INFORM":      5,
+	"MSG_REQ_RES":     6,
+	"MSG_REQ_ACK":     7,
+	"MSG_SEND_SINGLE": 8,
+	"MSG_SEND_GROUP":  9,
+	"MSG_SEND_RES":    10,
+	"LOGIN_RES":       11,
 }
 
-func (x ProtocolTypeEnum) String() string {
-	return proto.EnumName(ProtocolTypeEnum_name, int32(x))
+func (x PkgTypeEnum) String() string {
+	return proto.EnumName(PkgTypeEnum_name, int32(x))
 }
-func (ProtocolTypeEnum) EnumDescriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+func (PkgTypeEnum) EnumDescriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
+// 消息类型
 type MsgTypeEnum int32
 
 const (
 	MsgTypeEnum_DEFAULT MsgTypeEnum = 0
 	// 文本
-	MsgTypeEnum_TEXT    MsgTypeEnum = 1
-	MsgTypeEnum_EMOJI   MsgTypeEnum = 2
+	MsgTypeEnum_TEXT MsgTypeEnum = 1
+	// 表情
+	MsgTypeEnum_EMOJI MsgTypeEnum = 2
+	// 这个说明这个是个指令，客户端可以解析具体的消息内容做相应的操作
 	MsgTypeEnum_PUSHCMD MsgTypeEnum = 3
-	MsgTypeEnum_IMG     MsgTypeEnum = 4
+	// 图片应该也是有分片的，这个和语音一样是直接上传到存储消息发地址还是分片通过通道待研究
+	MsgTypeEnum_IMG MsgTypeEnum = 4
 	// 消息分片
 	MsgTypeEnum_VOICE MsgTypeEnum = 5
-	// 消息描述
+	// 语音描述
 	MsgTypeEnum_VOICE_DES MsgTypeEnum = 6
 )
 
@@ -130,18 +143,54 @@ func (x MsgTypeEnum) String() string {
 }
 func (MsgTypeEnum) EnumDescriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
 
-// *
+// 设备类型
+type DeviceTypeEnum int32
+
+const (
+	DeviceTypeEnum_TMP     DeviceTypeEnum = 0
+	DeviceTypeEnum_ANDROID DeviceTypeEnum = 1
+	DeviceTypeEnum_IOS     DeviceTypeEnum = 2
+	DeviceTypeEnum_PC      DeviceTypeEnum = 3
+)
+
+var DeviceTypeEnum_name = map[int32]string{
+	0: "TMP",
+	1: "ANDROID",
+	2: "IOS",
+	3: "PC",
+}
+var DeviceTypeEnum_value = map[string]int32{
+	"TMP":     0,
+	"ANDROID": 1,
+	"IOS":     2,
+	"PC":      3,
+}
+
+func (x DeviceTypeEnum) String() string {
+	return proto.EnumName(DeviceTypeEnum_name, int32(x))
+}
+func (DeviceTypeEnum) EnumDescriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+
 // 单聊消息
 type SingleMsg struct {
-	FromUserId int64  `protobuf:"varint,1,opt,name=fromUserId" json:"fromUserId,omitempty"`
-	ToUserId   int64  `protobuf:"varint,2,opt,name=toUserId" json:"toUserId,omitempty"`
-	Content    string `protobuf:"bytes,3,opt,name=content" json:"content,omitempty"`
-	ClientTime string `protobuf:"bytes,4,opt,name=clientTime" json:"clientTime,omitempty"`
-	ServerTime string `protobuf:"bytes,5,opt,name=serverTime" json:"serverTime,omitempty"`
-	MsgType    string `protobuf:"bytes,6,opt,name=msgType" json:"msgType,omitempty"`
-	SyncKey    int64  `protobuf:"varint,7,opt,name=syncKey" json:"syncKey,omitempty"`
-	MsgId      string `protobuf:"bytes,8,opt,name=msgId" json:"msgId,omitempty"`
-	DeviceType int32  `protobuf:"varint,9,opt,name=deviceType" json:"deviceType,omitempty"`
+	// 发送者账号id
+	FromUserId int64 `protobuf:"varint,1,opt,name=fromUserId" json:"fromUserId,omitempty"`
+	// 接收者账号id
+	ToUserId int64 `protobuf:"varint,2,opt,name=toUserId" json:"toUserId,omitempty"`
+	// 消息内容
+	Content string `protobuf:"bytes,3,opt,name=content" json:"content,omitempty"`
+	// 客户端发送消息时间戳
+	SendTimestamp int64 `protobuf:"varint,4,opt,name=sendTimestamp" json:"sendTimestamp,omitempty"`
+	// 服务器接收消息时间戳
+	ReceiveTimestamp int64 `protobuf:"varint,5,opt,name=receiveTimestamp" json:"receiveTimestamp,omitempty"`
+	// 消息类型文本、图片切片、图片结束、语音切片、语音结束
+	MsgType int32 `protobuf:"varint,6,opt,name=msgType" json:"msgType,omitempty"`
+	// 消息序号
+	SrlNo int64 `protobuf:"varint,7,opt,name=srlNo" json:"srlNo,omitempty"`
+	// 消息的唯一id，由客户端负责生成
+	MsgId string `protobuf:"bytes,8,opt,name=msgId" json:"msgId,omitempty"`
+	// 发送消息的设备类型
+	DeviceType int32 `protobuf:"varint,9,opt,name=deviceType" json:"deviceType,omitempty"`
 }
 
 func (m *SingleMsg) Reset()                    { *m = SingleMsg{} }
@@ -170,30 +219,30 @@ func (m *SingleMsg) GetContent() string {
 	return ""
 }
 
-func (m *SingleMsg) GetClientTime() string {
+func (m *SingleMsg) GetSendTimestamp() int64 {
 	if m != nil {
-		return m.ClientTime
+		return m.SendTimestamp
 	}
-	return ""
+	return 0
 }
 
-func (m *SingleMsg) GetServerTime() string {
+func (m *SingleMsg) GetReceiveTimestamp() int64 {
 	if m != nil {
-		return m.ServerTime
+		return m.ReceiveTimestamp
 	}
-	return ""
+	return 0
 }
 
-func (m *SingleMsg) GetMsgType() string {
+func (m *SingleMsg) GetMsgType() int32 {
 	if m != nil {
 		return m.MsgType
 	}
-	return ""
+	return 0
 }
 
-func (m *SingleMsg) GetSyncKey() int64 {
+func (m *SingleMsg) GetSrlNo() int64 {
 	if m != nil {
-		return m.SyncKey
+		return m.SrlNo
 	}
 	return 0
 }
@@ -212,18 +261,26 @@ func (m *SingleMsg) GetDeviceType() int32 {
 	return 0
 }
 
-// *
 // 群聊消息
 type GroupMsg struct {
-	FromUserId int64  `protobuf:"varint,1,opt,name=fromUserId" json:"fromUserId,omitempty"`
-	ToGroupId  int64  `protobuf:"varint,2,opt,name=toGroupId" json:"toGroupId,omitempty"`
-	Content    string `protobuf:"bytes,3,opt,name=content" json:"content,omitempty"`
-	ClientTime string `protobuf:"bytes,4,opt,name=clientTime" json:"clientTime,omitempty"`
-	ServerTime string `protobuf:"bytes,5,opt,name=serverTime" json:"serverTime,omitempty"`
-	MsgType    string `protobuf:"bytes,6,opt,name=msgType" json:"msgType,omitempty"`
-	SyncKey    int64  `protobuf:"varint,7,opt,name=syncKey" json:"syncKey,omitempty"`
-	MsgId      string `protobuf:"bytes,8,opt,name=msgId" json:"msgId,omitempty"`
-	DeviceType int32  `protobuf:"varint,9,opt,name=deviceType" json:"deviceType,omitempty"`
+	// 发送者账号id
+	FromUserId int64 `protobuf:"varint,1,opt,name=fromUserId" json:"fromUserId,omitempty"`
+	// 接收群id
+	ToGroupId int64 `protobuf:"varint,2,opt,name=toGroupId" json:"toGroupId,omitempty"`
+	// 消息内容
+	Content string `protobuf:"bytes,3,opt,name=content" json:"content,omitempty"`
+	// 客户端发送消息时间戳
+	SendTimestamp int64 `protobuf:"varint,4,opt,name=sendTimestamp" json:"sendTimestamp,omitempty"`
+	// 服务器接收消息时间戳
+	ReceiveTimestamp int64 `protobuf:"varint,5,opt,name=receiveTimestamp" json:"receiveTimestamp,omitempty"`
+	// 消息类型文本、图片切片、图片结束、语音切片、语音结束
+	MsgType int32 `protobuf:"varint,6,opt,name=msgType" json:"msgType,omitempty"`
+	// 消息序号
+	SrlNo int64 `protobuf:"varint,7,opt,name=srlNo" json:"srlNo,omitempty"`
+	// 消息的唯一id，由客户端负责生成
+	MsgId string `protobuf:"bytes,8,opt,name=msgId" json:"msgId,omitempty"`
+	// 发送消息的设备类型
+	DeviceType int32 `protobuf:"varint,9,opt,name=deviceType" json:"deviceType,omitempty"`
 }
 
 func (m *GroupMsg) Reset()                    { *m = GroupMsg{} }
@@ -252,30 +309,30 @@ func (m *GroupMsg) GetContent() string {
 	return ""
 }
 
-func (m *GroupMsg) GetClientTime() string {
+func (m *GroupMsg) GetSendTimestamp() int64 {
 	if m != nil {
-		return m.ClientTime
+		return m.SendTimestamp
 	}
-	return ""
+	return 0
 }
 
-func (m *GroupMsg) GetServerTime() string {
+func (m *GroupMsg) GetReceiveTimestamp() int64 {
 	if m != nil {
-		return m.ServerTime
+		return m.ReceiveTimestamp
 	}
-	return ""
+	return 0
 }
 
-func (m *GroupMsg) GetMsgType() string {
+func (m *GroupMsg) GetMsgType() int32 {
 	if m != nil {
 		return m.MsgType
 	}
-	return ""
+	return 0
 }
 
-func (m *GroupMsg) GetSyncKey() int64 {
+func (m *GroupMsg) GetSrlNo() int64 {
 	if m != nil {
-		return m.SyncKey
+		return m.SrlNo
 	}
 	return 0
 }
@@ -294,11 +351,14 @@ func (m *GroupMsg) GetDeviceType() int32 {
 	return 0
 }
 
-// *
-// 消息发送响应
+// 消息发送响应*
 type MsgSendRes struct {
+	// 消息id
 	MsgId string `protobuf:"bytes,1,opt,name=msgId" json:"msgId,omitempty"`
-	Flag  bool   `protobuf:"varint,2,opt,name=flag" json:"flag,omitempty"`
+	// 消息发送是否成功的标志
+	Flag bool `protobuf:"varint,2,opt,name=flag" json:"flag,omitempty"`
+	// 服务器响应时间戳
+	Timestamp int64 `protobuf:"varint,3,opt,name=timestamp" json:"timestamp,omitempty"`
 }
 
 func (m *MsgSendRes) Reset()                    { *m = MsgSendRes{} }
@@ -320,13 +380,25 @@ func (m *MsgSendRes) GetFlag() bool {
 	return false
 }
 
-// *
+func (m *MsgSendRes) GetTimestamp() int64 {
+	if m != nil {
+		return m.Timestamp
+	}
+	return 0
+}
+
 // 消息请求
 type MsgReq struct {
-	UserId      int64 `protobuf:"varint,1,opt,name=userId" json:"userId,omitempty"`
-	SyncKey     int64 `protobuf:"varint,2,opt,name=syncKey" json:"syncKey,omitempty"`
-	PageSize    int32 `protobuf:"varint,3,opt,name=pageSize" json:"pageSize,omitempty"`
+	// 请求者消息id
+	UserId int64 `protobuf:"varint,1,opt,name=userId" json:"userId,omitempty"`
+	// 请求者客户端保存的已经读到的消息序号
+	SrlNo int64 `protobuf:"varint,2,opt,name=srlNo" json:"srlNo,omitempty"`
+	// 请求者读取多少条
+	PageSize int32 `protobuf:"varint,3,opt,name=pageSize" json:"pageSize,omitempty"`
+	// 当前页
 	CurrentPage int32 `protobuf:"varint,4,opt,name=currentPage" json:"currentPage,omitempty"`
+	// 请求时间戳
+	Timestamp int64 `protobuf:"varint,5,opt,name=timestamp" json:"timestamp,omitempty"`
 }
 
 func (m *MsgReq) Reset()                    { *m = MsgReq{} }
@@ -341,9 +413,9 @@ func (m *MsgReq) GetUserId() int64 {
 	return 0
 }
 
-func (m *MsgReq) GetSyncKey() int64 {
+func (m *MsgReq) GetSrlNo() int64 {
 	if m != nil {
-		return m.SyncKey
+		return m.SrlNo
 	}
 	return 0
 }
@@ -362,11 +434,21 @@ func (m *MsgReq) GetCurrentPage() int32 {
 	return 0
 }
 
-// *
+func (m *MsgReq) GetTimestamp() int64 {
+	if m != nil {
+		return m.Timestamp
+	}
+	return 0
+}
+
 // 消息请求响应
 type MsgReqRes struct {
-	SyncKey int64        `protobuf:"varint,1,opt,name=syncKey" json:"syncKey,omitempty"`
-	Msgs    []*SingleMsg `protobuf:"bytes,2,rep,name=msgs" json:"msgs,omitempty"`
+	// 本次读取到的序号
+	SrlNo int64 `protobuf:"varint,1,opt,name=srlNo" json:"srlNo,omitempty"`
+	// 消息列表
+	Msgs []*SingleMsg `protobuf:"bytes,2,rep,name=msgs" json:"msgs,omitempty"`
+	// 响应时间戳
+	Timestamp int64 `protobuf:"varint,3,opt,name=timestamp" json:"timestamp,omitempty"`
 }
 
 func (m *MsgReqRes) Reset()                    { *m = MsgReqRes{} }
@@ -374,9 +456,9 @@ func (m *MsgReqRes) String() string            { return proto.CompactTextString(
 func (*MsgReqRes) ProtoMessage()               {}
 func (*MsgReqRes) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
 
-func (m *MsgReqRes) GetSyncKey() int64 {
+func (m *MsgReqRes) GetSrlNo() int64 {
 	if m != nil {
-		return m.SyncKey
+		return m.SrlNo
 	}
 	return 0
 }
@@ -388,11 +470,21 @@ func (m *MsgReqRes) GetMsgs() []*SingleMsg {
 	return nil
 }
 
-// *
+func (m *MsgReqRes) GetTimestamp() int64 {
+	if m != nil {
+		return m.Timestamp
+	}
+	return 0
+}
+
 // 登录请求
 type LoginReq struct {
-	UerId      int64 `protobuf:"varint,1,opt,name=uerId" json:"uerId,omitempty"`
+	UserId     int64 `protobuf:"varint,1,opt,name=userId" json:"userId,omitempty"`
 	DeviceType int32 `protobuf:"varint,2,opt,name=deviceType" json:"deviceType,omitempty"`
+	// 请求时间戳
+	Timestamp int64 `protobuf:"varint,3,opt,name=timestamp" json:"timestamp,omitempty"`
+	// 用户token
+	Token string `protobuf:"bytes,4,opt,name=token" json:"token,omitempty"`
 }
 
 func (m *LoginReq) Reset()                    { *m = LoginReq{} }
@@ -400,9 +492,9 @@ func (m *LoginReq) String() string            { return proto.CompactTextString(m
 func (*LoginReq) ProtoMessage()               {}
 func (*LoginReq) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
 
-func (m *LoginReq) GetUerId() int64 {
+func (m *LoginReq) GetUserId() int64 {
 	if m != nil {
-		return m.UerId
+		return m.UserId
 	}
 	return 0
 }
@@ -414,17 +506,61 @@ func (m *LoginReq) GetDeviceType() int32 {
 	return 0
 }
 
-// *
+func (m *LoginReq) GetTimestamp() int64 {
+	if m != nil {
+		return m.Timestamp
+	}
+	return 0
+}
+
+func (m *LoginReq) GetToken() string {
+	if m != nil {
+		return m.Token
+	}
+	return ""
+}
+
+// 登录响应
+type LoginRes struct {
+	// 登录是否成功标识
+	Flag bool `protobuf:"varint,1,opt,name=flag" json:"flag,omitempty"`
+	// 服务器响应时间戳
+	Timestamp int64 `protobuf:"varint,2,opt,name=timestamp" json:"timestamp,omitempty"`
+}
+
+func (m *LoginRes) Reset()                    { *m = LoginRes{} }
+func (m *LoginRes) String() string            { return proto.CompactTextString(m) }
+func (*LoginRes) ProtoMessage()               {}
+func (*LoginRes) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
+
+func (m *LoginRes) GetFlag() bool {
+	if m != nil {
+		return m.Flag
+	}
+	return false
+}
+
+func (m *LoginRes) GetTimestamp() int64 {
+	if m != nil {
+		return m.Timestamp
+	}
+	return 0
+}
+
 // 消息请求响应ack
 type MsgReqAck struct {
-	UserId  int64 `protobuf:"varint,1,opt,name=userId" json:"userId,omitempty"`
-	SyncKey int64 `protobuf:"varint,2,opt,name=syncKey" json:"syncKey,omitempty"`
+	// 用户id
+	UserId int64 `protobuf:"varint,1,opt,name=userId" json:"userId,omitempty"`
+	// 本地已经拉取到的消息序号
+	SrlNo int64 `protobuf:"varint,2,opt,name=srlNo" json:"srlNo,omitempty"`
+	// ack时间戳
+	Timestamp int64 `protobuf:"varint,3,opt,name=timestamp" json:"timestamp,omitempty"`
 }
 
 func (m *MsgReqAck) Reset()                    { *m = MsgReqAck{} }
 func (m *MsgReqAck) String() string            { return proto.CompactTextString(m) }
 func (*MsgReqAck) ProtoMessage()               {}
-func (*MsgReqAck) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
+func (*MsgReqAck) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{7} }
 
 func (m *MsgReqAck) GetUserId() int64 {
 	if m != nil {
@@ -433,24 +569,33 @@ func (m *MsgReqAck) GetUserId() int64 {
 	return 0
 }
 
-func (m *MsgReqAck) GetSyncKey() int64 {
+func (m *MsgReqAck) GetSrlNo() int64 {
 	if m != nil {
-		return m.SyncKey
+		return m.SrlNo
 	}
 	return 0
 }
 
-// *
+func (m *MsgReqAck) GetTimestamp() int64 {
+	if m != nil {
+		return m.Timestamp
+	}
+	return 0
+}
+
 // 新消息通知
 type MsgInform struct {
-	UserId  int64 `protobuf:"varint,1,opt,name=userId" json:"userId,omitempty"`
-	SyncKey int64 `protobuf:"varint,2,opt,name=syncKey" json:"syncKey,omitempty"`
+	UserId int64 `protobuf:"varint,1,opt,name=userId" json:"userId,omitempty"`
+	// 最新的消息序号
+	SrlNo int64 `protobuf:"varint,2,opt,name=srlNo" json:"srlNo,omitempty"`
+	// 通知时间戳
+	Timestamp int64 `protobuf:"varint,3,opt,name=timestamp" json:"timestamp,omitempty"`
 }
 
 func (m *MsgInform) Reset()                    { *m = MsgInform{} }
 func (m *MsgInform) String() string            { return proto.CompactTextString(m) }
 func (*MsgInform) ProtoMessage()               {}
-func (*MsgInform) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{7} }
+func (*MsgInform) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{8} }
 
 func (m *MsgInform) GetUserId() int64 {
 	if m != nil {
@@ -459,80 +604,81 @@ func (m *MsgInform) GetUserId() int64 {
 	return 0
 }
 
-func (m *MsgInform) GetSyncKey() int64 {
+func (m *MsgInform) GetSrlNo() int64 {
 	if m != nil {
-		return m.SyncKey
+		return m.SrlNo
 	}
 	return 0
 }
 
-// 协议
-type TcpProtocol struct {
-	// 协议Id ProtocolTypeEnum里的值
-	ProtocolType int32 `protobuf:"varint,1,opt,name=protocolType" json:"protocolType,omitempty"`
+func (m *MsgInform) GetTimestamp() int64 {
+	if m != nil {
+		return m.Timestamp
+	}
+	return 0
+}
+
+// Tcp消息包
+type TcpProtPkg struct {
+	// 包类型PacTypeEnum里的值
+	PkgType int32 `protobuf:"varint,1,opt,name=pkgType" json:"pkgType,omitempty"`
 	// 协议内容，也就是消息内容
-	ProtocolContent []byte `protobuf:"bytes,2,opt,name=protocolContent,proto3" json:"protocolContent,omitempty"`
+	Content []byte `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
 }
 
-func (m *TcpProtocol) Reset()                    { *m = TcpProtocol{} }
-func (m *TcpProtocol) String() string            { return proto.CompactTextString(m) }
-func (*TcpProtocol) ProtoMessage()               {}
-func (*TcpProtocol) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{8} }
+func (m *TcpProtPkg) Reset()                    { *m = TcpProtPkg{} }
+func (m *TcpProtPkg) String() string            { return proto.CompactTextString(m) }
+func (*TcpProtPkg) ProtoMessage()               {}
+func (*TcpProtPkg) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{9} }
 
-func (m *TcpProtocol) GetProtocolType() int32 {
+func (m *TcpProtPkg) GetPkgType() int32 {
 	if m != nil {
-		return m.ProtocolType
+		return m.PkgType
 	}
 	return 0
 }
 
-func (m *TcpProtocol) GetProtocolContent() []byte {
+func (m *TcpProtPkg) GetContent() []byte {
 	if m != nil {
-		return m.ProtocolContent
+		return m.Content
 	}
 	return nil
 }
 
-// 协议
-type UdpProtocol struct {
-	// 协议Id
-	ProtocolType    int32  `protobuf:"varint,1,opt,name=protocolType" json:"protocolType,omitempty"`
-	ProtocolContent []byte `protobuf:"bytes,2,opt,name=protocolContent,proto3" json:"protocolContent,omitempty"`
-	ToUuserId       int64  `protobuf:"varint,3,opt,name=toUuserId" json:"toUuserId,omitempty"`
-	Fromaddress     string `protobuf:"bytes,4,opt,name=fromaddress" json:"fromaddress,omitempty"`
+// udp消息包
+type UdpProtPkg struct {
+	// 包类型
+	PkgType int32 `protobuf:"varint,1,opt,name=pkgType" json:"pkgType,omitempty"`
+	// 协议内容，也就是消息内容
+	Content []byte `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	// 逻辑层发到接入层的消息，要有userId找寻长连接通道
+	ToUserId int64 `protobuf:"varint,3,opt,name=toUserId" json:"toUserId,omitempty"`
 }
 
-func (m *UdpProtocol) Reset()                    { *m = UdpProtocol{} }
-func (m *UdpProtocol) String() string            { return proto.CompactTextString(m) }
-func (*UdpProtocol) ProtoMessage()               {}
-func (*UdpProtocol) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{9} }
+func (m *UdpProtPkg) Reset()                    { *m = UdpProtPkg{} }
+func (m *UdpProtPkg) String() string            { return proto.CompactTextString(m) }
+func (*UdpProtPkg) ProtoMessage()               {}
+func (*UdpProtPkg) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{10} }
 
-func (m *UdpProtocol) GetProtocolType() int32 {
+func (m *UdpProtPkg) GetPkgType() int32 {
 	if m != nil {
-		return m.ProtocolType
+		return m.PkgType
 	}
 	return 0
 }
 
-func (m *UdpProtocol) GetProtocolContent() []byte {
+func (m *UdpProtPkg) GetContent() []byte {
 	if m != nil {
-		return m.ProtocolContent
+		return m.Content
 	}
 	return nil
 }
 
-func (m *UdpProtocol) GetToUuserId() int64 {
+func (m *UdpProtPkg) GetToUserId() int64 {
 	if m != nil {
-		return m.ToUuserId
+		return m.ToUserId
 	}
 	return 0
-}
-
-func (m *UdpProtocol) GetFromaddress() string {
-	if m != nil {
-		return m.Fromaddress
-	}
-	return ""
 }
 
 func init() {
@@ -542,56 +688,62 @@ func init() {
 	proto.RegisterType((*MsgReq)(nil), "bean.MsgReq")
 	proto.RegisterType((*MsgReqRes)(nil), "bean.MsgReqRes")
 	proto.RegisterType((*LoginReq)(nil), "bean.LoginReq")
+	proto.RegisterType((*LoginRes)(nil), "bean.LoginRes")
 	proto.RegisterType((*MsgReqAck)(nil), "bean.MsgReqAck")
 	proto.RegisterType((*MsgInform)(nil), "bean.MsgInform")
-	proto.RegisterType((*TcpProtocol)(nil), "bean.TcpProtocol")
-	proto.RegisterType((*UdpProtocol)(nil), "bean.UdpProtocol")
-	proto.RegisterEnum("bean.ProtocolTypeEnum", ProtocolTypeEnum_name, ProtocolTypeEnum_value)
+	proto.RegisterType((*TcpProtPkg)(nil), "bean.TcpProtPkg")
+	proto.RegisterType((*UdpProtPkg)(nil), "bean.UdpProtPkg")
+	proto.RegisterEnum("bean.PkgTypeEnum", PkgTypeEnum_name, PkgTypeEnum_value)
 	proto.RegisterEnum("bean.MsgTypeEnum", MsgTypeEnum_name, MsgTypeEnum_value)
+	proto.RegisterEnum("bean.DeviceTypeEnum", DeviceTypeEnum_name, DeviceTypeEnum_value)
 }
 
 func init() { proto.RegisterFile("im.proto", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
-	// 634 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xdc, 0x53, 0xcd, 0x6e, 0xd3, 0x40,
-	0x18, 0xac, 0xff, 0x12, 0xfb, 0x73, 0x69, 0x56, 0x4b, 0x85, 0xac, 0x0a, 0xa1, 0xc8, 0x5c, 0xa2,
-	0x1e, 0x7a, 0x00, 0x89, 0x1b, 0x12, 0x55, 0xe2, 0x1a, 0xb7, 0xb1, 0x1d, 0xd6, 0x31, 0x20, 0x71,
-	0x88, 0x52, 0x7b, 0x6b, 0x59, 0xc4, 0x76, 0xb0, 0x9d, 0x8a, 0xf2, 0x0a, 0xf0, 0x06, 0xbc, 0x03,
-	0xcf, 0x88, 0x76, 0xed, 0xa4, 0x6e, 0xb9, 0x00, 0x12, 0x17, 0x6e, 0x9e, 0x99, 0xdd, 0xf9, 0x66,
-	0x47, 0xfe, 0x40, 0x4d, 0xb3, 0x93, 0x75, 0x59, 0xd4, 0x05, 0x96, 0x2f, 0xe9, 0x32, 0x37, 0xbf,
-	0x8a, 0xa0, 0x05, 0x69, 0x9e, 0xac, 0xa8, 0x5b, 0x25, 0xf8, 0x09, 0xc0, 0x55, 0x59, 0x64, 0x61,
-	0x45, 0x4b, 0x27, 0x36, 0x84, 0xa1, 0x30, 0x92, 0x48, 0x87, 0xc1, 0x47, 0xa0, 0xd6, 0x45, 0xab,
-	0x8a, 0x5c, 0xdd, 0x61, 0x6c, 0x40, 0x3f, 0x2a, 0xf2, 0x9a, 0xe6, 0xb5, 0x21, 0x0d, 0x85, 0x91,
-	0x46, 0xb6, 0x90, 0xb9, 0x46, 0xab, 0x94, 0xe6, 0xf5, 0x3c, 0xcd, 0xa8, 0x21, 0x73, 0xb1, 0xc3,
-	0x30, 0xbd, 0xa2, 0xe5, 0x35, 0x2d, 0xb9, 0xae, 0x34, 0xfa, 0x2d, 0xc3, 0x9c, 0xb3, 0x2a, 0x99,
-	0xdf, 0xac, 0xa9, 0xd1, 0x6b, 0x9c, 0x5b, 0xc8, 0x94, 0xea, 0x26, 0x8f, 0x2e, 0xe8, 0x8d, 0xd1,
-	0xe7, 0x71, 0xb6, 0x10, 0x1f, 0x82, 0x92, 0x55, 0x89, 0x13, 0x1b, 0x2a, 0xbf, 0xd1, 0x00, 0x36,
-	0x29, 0xa6, 0xd7, 0x69, 0x44, 0xb9, 0x99, 0x36, 0x14, 0x46, 0x0a, 0xe9, 0x30, 0xe6, 0x37, 0x11,
-	0x54, 0xbb, 0x2c, 0x36, 0xeb, 0xdf, 0x29, 0xe3, 0x31, 0x68, 0x75, 0xc1, 0x4f, 0xef, 0xda, 0xb8,
-	0x25, 0xfe, 0x8b, 0x3a, 0x5e, 0x00, 0xb8, 0x55, 0x12, 0xd0, 0x3c, 0x26, 0xb4, 0xba, 0xf5, 0x10,
-	0xba, 0x1e, 0x18, 0xe4, 0xab, 0xd5, 0x32, 0xe1, 0x05, 0xa8, 0x84, 0x7f, 0x9b, 0x9f, 0xa1, 0xe7,
-	0x56, 0x09, 0xa1, 0x9f, 0xf0, 0x23, 0xe8, 0x6d, 0xba, 0xfd, 0xb5, 0xa8, 0x9b, 0x54, 0xbc, 0x9b,
-	0xf4, 0x08, 0xd4, 0xf5, 0x32, 0xa1, 0x41, 0xfa, 0x85, 0xf2, 0xe2, 0x14, 0xb2, 0xc3, 0x78, 0x08,
-	0x7a, 0xb4, 0x29, 0x4b, 0x9a, 0xd7, 0xb3, 0x65, 0xd2, 0x54, 0xa7, 0x90, 0x2e, 0x65, 0x9e, 0x83,
-	0xd6, 0x4c, 0x66, 0x81, 0x3b, 0x43, 0x84, 0xbb, 0x43, 0x9e, 0x82, 0x9c, 0x55, 0x49, 0x65, 0x88,
-	0x43, 0x69, 0xa4, 0x3f, 0x1b, 0x9c, 0xb0, 0x55, 0x38, 0xd9, 0xad, 0x01, 0xe1, 0xa2, 0xf9, 0x0a,
-	0xd4, 0x69, 0x91, 0xa4, 0x39, 0x7b, 0xc7, 0x21, 0x28, 0x9b, 0xce, 0x33, 0x1a, 0x70, 0xaf, 0x3f,
-	0xf1, 0x97, 0xfe, 0x5e, 0x6e, 0xd3, 0x9c, 0x46, 0x1f, 0xff, 0xbc, 0x8a, 0xf6, 0xba, 0x93, 0x5f,
-	0x15, 0x65, 0xf6, 0x17, 0xd7, 0x3f, 0x80, 0x3e, 0x8f, 0xd6, 0x33, 0xb6, 0xec, 0x51, 0xb1, 0xc2,
-	0x26, 0xec, 0xaf, 0xdb, 0x6f, 0x1e, 0x57, 0xe0, 0x71, 0xef, 0x70, 0x78, 0x04, 0x83, 0x2d, 0x1e,
-	0xb7, 0x3f, 0x2f, 0x33, 0xdd, 0x27, 0xf7, 0x69, 0xf3, 0xbb, 0x00, 0x7a, 0x18, 0xff, 0x23, 0xf7,
-	0x66, 0xb5, 0xc2, 0xf6, 0xbd, 0xd2, 0x76, 0xb5, 0x5a, 0x82, 0xfd, 0x06, 0x6c, 0x0d, 0x97, 0x71,
-	0x5c, 0xd2, 0xaa, 0x6a, 0x37, 0xa8, 0x4b, 0x1d, 0xff, 0x10, 0x00, 0xcd, 0x3a, 0xa3, 0xad, 0x7c,
-	0x93, 0x61, 0x1d, 0xfa, 0xa1, 0x77, 0xe1, 0xf9, 0xef, 0x3c, 0xb4, 0x87, 0x35, 0x50, 0xa6, 0xbe,
-	0xed, 0x78, 0x48, 0xc0, 0x2a, 0xc8, 0x33, 0xdf, 0xb3, 0x91, 0xc8, 0x4e, 0xb8, 0x81, 0xbd, 0x20,
-	0xd6, 0x1b, 0x24, 0xe1, 0x03, 0x00, 0x06, 0x1c, 0xef, 0xcc, 0x27, 0x2e, 0x92, 0xf1, 0x00, 0xf4,
-	0x56, 0x5c, 0x10, 0x2b, 0x40, 0x4a, 0x97, 0x38, 0x1d, 0x5f, 0xa0, 0x1e, 0x7e, 0x08, 0x03, 0x46,
-	0x04, 0x96, 0x37, 0x59, 0x04, 0x8e, 0x67, 0x4f, 0x2d, 0xd4, 0xc7, 0x18, 0x0e, 0x76, 0xa4, 0x4d,
-	0xfc, 0x70, 0x86, 0x54, 0x8c, 0x60, 0x7f, 0xc7, 0x31, 0x2f, 0xed, 0x78, 0x01, 0xba, 0xdb, 0x2c,
-	0xf1, 0x36, 0xea, 0xc4, 0x3a, 0x3b, 0x0d, 0xa7, 0x73, 0xb4, 0xc7, 0xf2, 0xcd, 0xad, 0xf7, 0x73,
-	0x24, 0xb0, 0xd0, 0x96, 0xeb, 0x9f, 0x3b, 0x4d, 0xd4, 0x59, 0x18, 0xbc, 0x1e, 0xbb, 0x13, 0x24,
-	0xe1, 0x3e, 0x48, 0x8e, 0x6b, 0x23, 0x99, 0x1d, 0x78, 0xeb, 0x3b, 0x63, 0x0b, 0x29, 0xf8, 0x01,
-	0x68, 0xfc, 0x73, 0x31, 0xb1, 0x02, 0xd4, 0xbb, 0xec, 0xf1, 0x8a, 0x9f, 0xff, 0x0c, 0x00, 0x00,
-	0xff, 0xff, 0x54, 0xe1, 0x1c, 0xdd, 0x00, 0x06, 0x00, 0x00,
+	// 701 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xdc, 0x55, 0x4d, 0x6f, 0xd3, 0x4a,
+	0x14, 0xad, 0xed, 0x38, 0xb1, 0x6f, 0xfa, 0x31, 0x9a, 0xf7, 0xf4, 0x64, 0x55, 0x4f, 0x28, 0x0a,
+	0x2c, 0xa2, 0x2c, 0xba, 0x80, 0x05, 0x1b, 0x16, 0x44, 0x89, 0x6b, 0x4c, 0xe3, 0x0f, 0xc6, 0x0e,
+	0x65, 0x81, 0x14, 0xa5, 0xc9, 0xd4, 0x8a, 0x52, 0x7f, 0xe0, 0x71, 0x2a, 0xc1, 0xcf, 0x60, 0x07,
+	0x3f, 0x88, 0xdf, 0x85, 0x66, 0x9c, 0x38, 0x4e, 0x11, 0x05, 0x04, 0x2b, 0x76, 0x73, 0xce, 0x5c,
+	0x9f, 0x7b, 0xef, 0xb9, 0xb9, 0x13, 0xd0, 0x96, 0xf1, 0x59, 0x96, 0xa7, 0x45, 0x8a, 0x1b, 0x57,
+	0x74, 0x96, 0x74, 0x3f, 0xc9, 0xa0, 0x07, 0xcb, 0x24, 0xba, 0xa1, 0x0e, 0x8b, 0xf0, 0x03, 0x80,
+	0xeb, 0x3c, 0x8d, 0x27, 0x8c, 0xe6, 0xf6, 0xc2, 0x90, 0x3a, 0x52, 0x4f, 0x21, 0x35, 0x06, 0x9f,
+	0x82, 0x56, 0xa4, 0x9b, 0x5b, 0x59, 0xdc, 0x56, 0x18, 0x1b, 0xd0, 0x9a, 0xa7, 0x49, 0x41, 0x93,
+	0xc2, 0x50, 0x3a, 0x52, 0x4f, 0x27, 0x5b, 0x88, 0x1f, 0xc1, 0x11, 0xa3, 0xc9, 0x22, 0x5c, 0xc6,
+	0x94, 0x15, 0xb3, 0x38, 0x33, 0x1a, 0xe2, 0xd3, 0x7d, 0x12, 0xf7, 0x01, 0xe5, 0x74, 0x4e, 0x97,
+	0xb7, 0x74, 0x17, 0xa8, 0x8a, 0xc0, 0x6f, 0x78, 0x9e, 0x2b, 0x66, 0x51, 0xf8, 0x3e, 0xa3, 0x46,
+	0xb3, 0x23, 0xf5, 0x54, 0xb2, 0x85, 0xf8, 0x5f, 0x50, 0x59, 0x7e, 0xe3, 0xa6, 0x46, 0x4b, 0x7c,
+	0x5a, 0x02, 0xce, 0xc6, 0x2c, 0xb2, 0x17, 0x86, 0x26, 0x2a, 0x2b, 0x01, 0xef, 0x76, 0x41, 0x6f,
+	0x97, 0x73, 0x2a, 0x84, 0x74, 0x21, 0x54, 0x63, 0xba, 0x9f, 0x65, 0xd0, 0xac, 0x3c, 0x5d, 0x67,
+	0x3f, 0x63, 0xcd, 0xff, 0xa0, 0x17, 0xa9, 0x88, 0xae, 0xbc, 0xd9, 0x11, 0x7f, 0xa1, 0x39, 0x21,
+	0x80, 0xc3, 0xa2, 0x80, 0x26, 0x0b, 0x42, 0xd9, 0x4e, 0x43, 0xaa, 0x6b, 0x60, 0x68, 0x5c, 0xdf,
+	0xcc, 0x22, 0x61, 0x87, 0x46, 0xc4, 0x59, 0xf8, 0x54, 0xb5, 0xa0, 0x6c, 0x7c, 0xda, 0x12, 0xdd,
+	0x8f, 0x12, 0x34, 0x1d, 0x16, 0x11, 0xfa, 0x0e, 0xff, 0x07, 0xcd, 0x75, 0xdd, 0xec, 0x0d, 0xda,
+	0x35, 0x21, 0xd7, 0x9b, 0x38, 0x05, 0x2d, 0x9b, 0x45, 0x34, 0x58, 0x7e, 0xa0, 0x42, 0x55, 0x25,
+	0x15, 0xc6, 0x1d, 0x68, 0xcf, 0xd7, 0x79, 0x4e, 0x93, 0xc2, 0x9f, 0x45, 0x54, 0x18, 0xac, 0x92,
+	0x3a, 0xb5, 0x5f, 0x94, 0x7a, 0xb7, 0xa8, 0x05, 0xe8, 0x65, 0x4d, 0x9b, 0x4e, 0xcb, 0xf4, 0x52,
+	0x3d, 0xfd, 0x43, 0x68, 0xc4, 0x2c, 0x62, 0x86, 0xdc, 0x51, 0x7a, 0xed, 0xc7, 0x27, 0x67, 0x7c,
+	0xb7, 0xce, 0xaa, 0xbd, 0x22, 0xe2, 0xf2, 0x07, 0xad, 0xdf, 0x82, 0x36, 0x4e, 0xa3, 0x65, 0x72,
+	0x5f, 0xef, 0xfb, 0x43, 0x91, 0xef, 0x0e, 0xe5, 0xfe, 0x0c, 0xbc, 0xf4, 0x22, 0x5d, 0xd1, 0x44,
+	0x38, 0xa0, 0x93, 0x12, 0x74, 0x9f, 0x55, 0x79, 0x59, 0x35, 0x30, 0xe9, 0x7b, 0x03, 0x93, 0xef,
+	0x56, 0x7d, 0xb9, 0xf5, 0x66, 0x30, 0x5f, 0xfd, 0xe2, 0xc8, 0xee, 0xb7, 0xa3, 0x14, 0xb6, 0x93,
+	0xeb, 0x34, 0x8f, 0xff, 0xa8, 0xf0, 0x73, 0x80, 0x70, 0x9e, 0xf9, 0x79, 0x5a, 0xf8, 0xab, 0x88,
+	0x2f, 0x4b, 0xb6, 0x2a, 0x97, 0x45, 0x2a, 0x97, 0x65, 0x03, 0xeb, 0x2b, 0xcb, 0xd5, 0x0f, 0xab,
+	0x95, 0xed, 0xbe, 0x05, 0x98, 0x2c, 0x7e, 0x47, 0x61, 0xef, 0x1d, 0x55, 0xf6, 0xdf, 0xd1, 0xfe,
+	0x17, 0x09, 0xda, 0x7e, 0xa9, 0x60, 0x26, 0xeb, 0x18, 0xb7, 0xa1, 0x35, 0x71, 0x2f, 0x5c, 0xef,
+	0xd2, 0x45, 0x07, 0xf8, 0x08, 0xf4, 0xb1, 0x67, 0xd9, 0xee, 0x94, 0x98, 0xaf, 0x90, 0x84, 0x35,
+	0x68, 0xf8, 0xb6, 0x6b, 0x21, 0x59, 0x9c, 0x3c, 0xd7, 0x42, 0x0a, 0x8f, 0x77, 0x02, 0x4b, 0x04,
+	0x34, 0xf0, 0x31, 0x00, 0x07, 0xb6, 0x7b, 0xee, 0x11, 0x07, 0xa9, 0xf8, 0x04, 0xda, 0x9b, 0xcb,
+	0x29, 0x31, 0x03, 0xd4, 0xac, 0x13, 0x83, 0xe1, 0x05, 0x6a, 0xe1, 0x7f, 0xe0, 0x84, 0x13, 0x81,
+	0xe9, 0x8e, 0xa6, 0x81, 0xed, 0x5a, 0x63, 0x13, 0x69, 0x18, 0xc3, 0x71, 0x45, 0x5a, 0xc4, 0x9b,
+	0xf8, 0x48, 0xc7, 0x08, 0x0e, 0x2b, 0x8e, 0x6b, 0x41, 0xbd, 0xb8, 0x00, 0xb5, 0xfb, 0x53, 0x68,
+	0x3b, 0x6c, 0xaf, 0x8f, 0x91, 0x79, 0x3e, 0x98, 0x8c, 0x43, 0x74, 0xc0, 0xcb, 0x0d, 0xcd, 0x37,
+	0x21, 0x92, 0xb0, 0x0e, 0xaa, 0xe9, 0x78, 0x2f, 0x6d, 0x24, 0xf3, 0x08, 0x7f, 0x12, 0xbc, 0x18,
+	0x3a, 0x23, 0xa4, 0xe0, 0x16, 0x28, 0xb6, 0x63, 0xa1, 0x06, 0x0f, 0x78, 0xed, 0xd9, 0x43, 0x13,
+	0xa9, 0x3c, 0x81, 0x38, 0x4e, 0x47, 0xbc, 0xf6, 0xfe, 0x53, 0x38, 0x1e, 0x55, 0xbf, 0x7d, 0x91,
+	0xa3, 0x05, 0x4a, 0xe8, 0xf8, 0xe8, 0x80, 0x4b, 0x0d, 0xdc, 0x11, 0xf1, 0xec, 0x11, 0x92, 0x84,
+	0x94, 0x17, 0x20, 0x19, 0x37, 0x41, 0xf6, 0x87, 0x48, 0xb9, 0x6a, 0x8a, 0x7f, 0xc0, 0x27, 0x5f,
+	0x03, 0x00, 0x00, 0xff, 0xff, 0x88, 0x8a, 0x47, 0x13, 0x0d, 0x07, 0x00, 0x00,
 }

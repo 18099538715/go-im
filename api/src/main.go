@@ -8,9 +8,18 @@ import (
 
 func main() {
 	m := func(ctx *fasthttp.RequestCtx) {
+		defer func() {
+			if err := recover(); err != nil {
+				controller.ErrorRes(ctx, err)
+			}
+		}()
 		switch string(ctx.Path()) {
 		case "/user/login":
-			controller.UserLogin(ctx)
+			if string(ctx.Method()) == "POST" {
+				controller.UserLogin(ctx)
+			} else {
+				ctx.Error("method is not allowed", fasthttp.StatusMethodNotAllowed)
+			}
 		case "/user/register":
 			controller.UserRegister(ctx)
 		default:

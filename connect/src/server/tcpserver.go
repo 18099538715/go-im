@@ -3,17 +3,27 @@ package server
 import (
 	"bean"
 	"bytes"
+	"conf"
 	"encoding/binary"
 	"fmt"
 	"handle"
 	"io"
 	"net"
 	"time"
+
+	"github.com/golang/protobuf/proto"
 )
 
 func StartTcpServer() {
 	go func() {
-		addr, err := net.ResolveTCPAddr("tcp", "192.168.31.248:8888")
+		//addr, err := net.ResolveTCPAddr("tcp", "192.168.31.248:8888")
+		tcpServerPort := conf.ConfMap["tcpserverport"]
+
+		addr, err := net.ResolveTCPAddr("tcp", ":"+tcpServerPort)
+		if err != nil {
+			fmt.Println("tcp启动失败", err)
+			return
+		}
 		listen, err := net.ListenTCP("tcp", addr)
 		if err != nil {
 			fmt.Println("listen error: ", addr)
@@ -35,30 +45,26 @@ func StartTcpServer() {
 }
 
 func HandleConnRead(conn *net.TCPConn) {
-	defer func() {
-		conn.Close()
-	}()
-
+	defer handle.CloseConn(conn)
 	for {
-		protocolTypeByte := make([]byte, 2)
 		lengthByte := make([]byte, 4)
-		var protocolType int16
 		var length int32
-		_, err := io.ReadFull(conn, protocolTypeByte)
+		_, err := io.ReadFull(conn, lengthByte)
 		if err != nil {
-			conn.Close()
-			fmt.Println("通道出错", err)
+			fmt.Println("读取信息出错", err)
 			break
 		}
-		bytesBuffer := bytes.NewBuffer(protocolTypeByte)
-		binary.Read(bytesBuffer, binary.BigEndian, &protocolType)
-		io.ReadFull(conn, lengthByte)
-		bytesBuffer = bytes.NewBuffer(lengthByte)
+		bytesBuffer := bytes.NewBuffer(lengthByte)
 		binary.Read(bytesBuffer, binary.BigEndian, &length)
 		msgByte := make([]byte, length)
 		conn.Read(msgByte)
-		protocol := &bean.TcpProtocol{ProtocolContent: msgByte, ProtocolType: int32(protocolType)}
-		handle.Handle(protocol, conn)
+		tcpPkg := &bean.TcpProtPkg{}
+		err = proto.Unmarshal(msgByte, tcpPkg)
+		if err != nil {
+			fmt.Println("读取信息出错")
+			break
+		}
+		handle.Handle(tcpPkg, conn)
 	}
 
 }

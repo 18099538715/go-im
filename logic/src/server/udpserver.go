@@ -19,24 +19,29 @@ func StartUdpServer() {
 	go func() {
 		addr, err := net.ResolveUDPAddr("udp", ":9001")
 		if err != nil {
-			fmt.Println("", err)
+			fmt.Println("失败", err)
 		}
 		udplisten, err := net.ListenUDP("udp", addr)
 		if err != nil {
-			fmt.Println("", err)
+			fmt.Println("失败", err)
 		}
-		defer udplisten.Close()
-		var buff = make([]byte, 10240)
+		defer func() {
+			udplisten.Close()
+			fmt.Println("udp服务器失败")
+		}()
+
+		var buff = make([]byte, 10000)
 
 		for {
-			n, _, err := udplisten.ReadFromUDP(buff)
+			fmt.Println("逻辑层开始接收消息")
+			n, remoteAddr, err := udplisten.ReadFromUDP(buff)
 			if err != nil {
 				fmt.Println("", err)
 			} else {
 				buffer := buff[0:n]
-				protocol := &bean.UdpProtocol{}
-				proto.Unmarshal(buffer, protocol)
-				handle.Handle(protocol)
+				udpPkg := &bean.UdpProtPkg{}
+				proto.Unmarshal(buffer, udpPkg)
+				handle.Handle(udpPkg, remoteAddr)
 			}
 
 		}
