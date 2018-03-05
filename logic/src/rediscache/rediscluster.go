@@ -4,7 +4,9 @@ import (
 	"bean"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/chasex/redis-go-cluster"
@@ -15,10 +17,19 @@ var cluster *redis.Cluster
 
 const msgExpireTime int64 = 60 * 60 * 24 * 7 //缓存消息7天过期
 func init() {
-	var err error
+	var servers map[string]string = make(map[string]string)
+	jsonFile, err := ioutil.ReadFile("redis.json")
+	if err != nil {
+		fmt.Printf("读取redis配置文件出错", err)
+	}
+	err = json.Unmarshal(jsonFile, &servers)
+	if err != nil {
+		fmt.Println("json redis配置信息出错", err)
+	}
+	serverList := strings.Split(servers["serverList"], ",")
 	cluster, err = redis.NewCluster(
 		&redis.Options{
-			StartNodes:   []string{"118.89.182.47:5000", "118.89.182.47:5001", "118.89.182.47:5002", "118.89.182.47:5003", "118.89.182.47:5004", "118.89.182.47:5005"},
+			StartNodes:   serverList,
 			ConnTimeout:  50 * time.Millisecond,
 			ReadTimeout:  50 * time.Millisecond,
 			WriteTimeout: 50 * time.Millisecond,

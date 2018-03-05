@@ -4,7 +4,9 @@ import (
 	"bean"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/chasex/redis-go-cluster"
@@ -13,10 +15,19 @@ import (
 var cluster *redis.Cluster
 
 func init() {
-	var err error
+	var servers map[string]string = make(map[string]string)
+	jsonFile, err := ioutil.ReadFile("redis.json")
+	if err != nil {
+		fmt.Printf("读取redis配置文件出错", err)
+	}
+	err = json.Unmarshal(jsonFile, &servers)
+	if err != nil {
+		fmt.Println("json redis配置信息出错", err)
+	}
+	serverList := strings.Split(servers["serverList"], ",")
 	cluster, err = redis.NewCluster(
 		&redis.Options{
-			StartNodes:   []string{"118.89.182.47:5000", "118.89.182.47:5001", "118.89.182.47:5002"},
+			StartNodes:   serverList,
 			ConnTimeout:  10 * time.Second,
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 10 * time.Second,

@@ -9,16 +9,16 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-func Handle(udpPkg *bean.UdpProtPkg, reomteUdpAddr *net.UDPAddr) {
+func Handle(udpPkg *bean.UdpProtPkg, reomteUdpAddr *net.UDPAddr, udpConn *net.UDPConn) {
 	switch bean.PkgTypeEnum(udpPkg.PkgType) {
 	case bean.PkgTypeEnum_MSG_SEND_SINGLE: //单聊消息发送包
-		singleMsg(udpPkg, reomteUdpAddr)
+		singleMsg(udpPkg, reomteUdpAddr, udpConn)
 	case bean.PkgTypeEnum_MSG_SEND_GROUP: //群聊消息发送包
-		groupMsg(udpPkg, reomteUdpAddr)
+		groupMsg(udpPkg, reomteUdpAddr, udpConn)
 	case bean.PkgTypeEnum_MSG_REQ: //消息请求包
-		msgReq(udpPkg, reomteUdpAddr)
+		msgReq(udpPkg, reomteUdpAddr, udpConn)
 	case bean.PkgTypeEnum_MSG_REQ_ACK: //消息请求ack包
-		msgReqAck(udpPkg, reomteUdpAddr)
+		msgReqAck(udpPkg, reomteUdpAddr, udpConn)
 	default:
 	}
 }
@@ -26,7 +26,7 @@ func Handle(udpPkg *bean.UdpProtPkg, reomteUdpAddr *net.UDPAddr) {
 /**
 消息请求ack，用户拉取完消息给个ack，更新用户的syncKey
 **/
-func msgReqAck(udpPkg *bean.UdpProtPkg, reomteUdpAddr *net.UDPAddr) {
+func msgReqAck(udpPkg *bean.UdpProtPkg, reomteUdpAddr *net.UDPAddr, udpConn *net.UDPConn) {
 	msg := &bean.MsgReqAck{}
 	err := proto.Unmarshal(udpPkg.GetContent(), msg)
 	if err != nil {
@@ -41,7 +41,7 @@ func msgReqAck(udpPkg *bean.UdpProtPkg, reomteUdpAddr *net.UDPAddr) {
 /**
 处理消息请求
 **/
-func msgReq(udpPkg *bean.UdpProtPkg, reomteUdpAddr *net.UDPAddr) {
+func msgReq(udpPkg *bean.UdpProtPkg, reomteUdpAddr *net.UDPAddr, udpConn *net.UDPConn) {
 	msg := &bean.MsgReq{}
 	err := proto.Unmarshal(udpPkg.GetContent(), msg)
 	if err != nil {
@@ -63,10 +63,18 @@ func msgReq(udpPkg *bean.UdpProtPkg, reomteUdpAddr *net.UDPAddr) {
 		return
 	}
 	msgReqRes := &bean.MsgReqRes{}
+	resSrlNo := currentSrlNo
 	if msgs != nil {
 		msgReqRes.Msgs = msgs
+		for _, msg := range msgs {
+			if msg != nil {
+				if resSrlNo < msg.SrlNo {
+					resSrlNo = msg.SrlNo
+				}
+			}
+		}
 	}
-	msgReqRes.SrlNo = currentSrlNo + int64(len(srlNos))
+	msgReqRes.SrlNo = resSrlNo
 	content, err := proto.Marshal(msgReqRes)
 	res := &bean.UdpProtPkg{ToUserId: msg.GetUserId(), PkgType: int32(bean.PkgTypeEnum_MSG_REQ_RES)}
 	if content != nil {
@@ -89,71 +97,59 @@ func msgReq(udpPkg *bean.UdpProtPkg, reomteUdpAddr *net.UDPAddr) {
 /**
 处理群组消息
 **/
-func groupMsg(udpPkg *bean.UdpProtPkg, reomteUdpAddr *net.UDPAddr) {
+func groupMsg(udpPkg *bean.UdpProtPkg, reomteUdpAddr *net.UDPAddr, udpConn *net.UDPConn) {
 
 }
 
 /**
 处理单聊消息
 **/
-func singleMsg(udpPkg *bean.UdpProtPkg, reomteUdpAddr *net.UDPAddr) {
+func singleMsg(udpPkg *bean.UdpProtPkg, reomteUdpAddr *net.UDPAddr, udpConn *net.UDPConn) {
 	singleMsg := &bean.SingleMsg{}
 	proto.Unmarshal(udpPkg.GetContent(), singleMsg)
 	fmt.Println("传过来的消息", singleMsg)
 	srlNo, err := rediscache.IncrUserSrlNo(singleMsg.GetToUserId())
 	if err != nil {
 		fmt.Println("srlNo自增失败", err)
-		msgSendRes(singleMsg.GetFromUserId(), reomteUdpAddr, singleMsg.GetMsgId(), false)
+		msgSendRes(singleMsg.GetFromUserId(), reomteUdpAddr, udpConn, singleMsg.GetMsgId(), false)
 		return
 	}
 	singleMsg.SrlNo = srlNo
 	err = rediscache.SetUserSingleMsg(singleMsg)
 	if err != nil {
 		fmt.Println("保存消息失败", err)
-		msgSendRes(singleMsg.GetFromUserId(), reomteUdpAddr, singleMsg.GetMsgId(), false)
+		msgSendRes(singleMsg.GetFromUserId(), reomteUdpAddr, udpConn, singleMsg.GetMsgId(), false)
 		return
 	}
 	//给发送者发响应
-	msgSendRes(singleMsg.GetFromUserId(), reomteUdpAddr, singleMsg.GetMsgId(), true)
+	msgSendRes(singleMsg.GetFromUserId(), reomteUdpAddr, udpConn, singleMsg.GetMsgId(), true)
 	//给接收者发通知
-	msgInform(singleMsg.GetToUserId(), srlNo)
+	msgInform(singleMsg.GetToUserId(), srlNo, udpConn)
 }
 
 /**
 消息发送响应
 **/
-func msgSendRes(userId int64, reomteUdpAddr *net.UDPAddr, msgId string, flag bool) {
-	udpclient, err := net.DialUDP("udp", nil, reomteUdpAddr)
-	defer udpclient.Close()
-	if err != nil {
-		fmt.Println("udp客户端建立失败", err)
-	}
+func msgSendRes(userId int64, reomteUdpAddr *net.UDPAddr, udpConn *net.UDPConn, msgId string, flag bool) {
 	msgSendRes := &bean.MsgSendRes{Flag: true, MsgId: msgId}
 	content, _ := proto.Marshal(msgSendRes)
 	res := &bean.UdpProtPkg{ToUserId: userId, Content: content, PkgType: int32(bean.PkgTypeEnum_MSG_SEND_RES)}
 	b, _ := proto.Marshal(res)
-	udpclient.Write(b)
-	udpclient.Close()
+	udpConn.WriteToUDP(b, reomteUdpAddr)
 }
 
 /**
 新消息通知
 **/
-func msgInform(userId int64, srlNo int64) {
+func msgInform(userId int64, srlNo int64, udpConn *net.UDPConn) {
 	u := rediscache.GetOnlineUser(userId)
 	if u == nil {
 		fmt.Println("用户不在线", userId)
 		return
 	}
-	udpclient, err := net.Dial("udp", u.Onlineaddr)
-	defer udpclient.Close()
-	if err != nil {
-		fmt.Println("udp客户端建立失败", err)
-	}
 	inForm := &bean.MsgInform{SrlNo: srlNo, UserId: userId}
 	b, _ := proto.Marshal(inForm)
 	res := &bean.UdpProtPkg{ToUserId: userId, Content: b, PkgType: int32(bean.PkgTypeEnum_MSG_INFORM)}
 	t, _ := proto.Marshal(res)
-	udpclient.Write(t)
-	udpclient.Close()
+	udpConn.WriteToUDP(t, &net.UDPAddr{IP: net.ParseIP(u.OnlineIp), Port: u.Port})
 }

@@ -2,11 +2,10 @@ package server
 
 import (
 	"bean"
-	"conf"
+	"config"
 	"fmt"
 	"handle"
 	"net"
-	"strconv"
 	"util"
 
 	"github.com/golang/protobuf/proto"
@@ -14,10 +13,7 @@ import (
 
 func StartUdpServer() {
 	go func() {
-		udpServerPort := conf.ConfMap["udpserverport"]
-		fmt.Println(udpServerPort)
-
-		addr, err := net.ResolveUDPAddr("udp", ":"+udpServerPort)
+		addr, err := net.ResolveUDPAddr("udp", config.GetUdpIp()+":"+config.GetUdpPort())
 		if err != nil {
 			fmt.Println("建立连接失败", err)
 		}
@@ -58,15 +54,10 @@ func receive(udpconn *net.UDPConn) {
 	}
 }
 func send(conn *net.UDPConn) {
-	udpRemotePort, err := strconv.ParseInt(conf.ConfMap["udpremoteport"], 10, 64)
-	if err != nil {
-		fmt.Println("远程udp失败")
-	}
-	udpRemoteAddr := conf.ConfMap["udpremoteaddr"]
-	ip := net.ParseIP(udpRemoteAddr)
+	ip := net.ParseIP(config.GetRemoteUdpIp())
 	udpAddr := &net.UDPAddr{
 		IP:   ip,
-		Port: int(udpRemotePort),
+		Port: int(config.GetRemoteUdpPort()),
 	}
 	for {
 		tmp, ok := <-handle.Udpchan

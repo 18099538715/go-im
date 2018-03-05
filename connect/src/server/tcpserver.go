@@ -3,7 +3,7 @@ package server
 import (
 	"bean"
 	"bytes"
-	"conf"
+	"config"
 	"encoding/binary"
 	"fmt"
 	"handle"
@@ -17,9 +17,8 @@ import (
 func StartTcpServer() {
 	go func() {
 		//addr, err := net.ResolveTCPAddr("tcp", "192.168.31.248:8888")
-		tcpServerPort := conf.ConfMap["tcpserverport"]
 
-		addr, err := net.ResolveTCPAddr("tcp", ":"+tcpServerPort)
+		addr, err := net.ResolveTCPAddr("tcp", config.GetTcpIp()+":"+config.GetTcpPort())
 		if err != nil {
 			fmt.Println("tcp启动失败", err)
 			return
@@ -30,38 +29,42 @@ func StartTcpServer() {
 			return
 		}
 		defer listen.Close()
+		connTimeout := config.GetConnTimeOut()
 		for {
 			conn, err := listen.AcceptTCP()
 			if err != nil {
 				fmt.Println("accept error: ", err)
 				break
 			}
-			conn.SetKeepAlive(true)
-			conn.SetKeepAlivePeriod(10 * time.Minute)
-			go HandleConnRead(conn)
+			go HandleConnRead(conn, connTimeout)
 		}
 	}()
 
 }
 
-func HandleConnRead(conn *net.TCPConn) {
+func HandleConnRead(conn *net.TCPConn, connTimeOut int64) {
 	defer handle.CloseConn(conn)
 	for {
+		conn.SetReadDeadline(time.Now().Add(time.Minute * time.Duration(connTimeOut)))
 		lengthByte := make([]byte, 4)
 		var length int32
 		_, err := io.ReadFull(conn, lengthByte)
 		if err != nil {
-			fmt.Println("读取信息出错", err)
+			fmt.Println("读取信息出错1", err)
 			break
 		}
 		bytesBuffer := bytes.NewBuffer(lengthByte)
 		binary.Read(bytesBuffer, binary.BigEndian, &length)
 		msgByte := make([]byte, length)
-		conn.Read(msgByte)
+		_, err = conn.Read(msgByte)
+		if err != nil {
+			fmt.Println("读取信息出错2", err)
+			break
+		}
 		tcpPkg := &bean.TcpProtPkg{}
 		err = proto.Unmarshal(msgByte, tcpPkg)
 		if err != nil {
-			fmt.Println("读取信息出错")
+			fmt.Println("读取信息出错3")
 			break
 		}
 		handle.Handle(tcpPkg, conn)

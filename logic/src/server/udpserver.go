@@ -2,6 +2,7 @@ package server
 
 import (
 	"bean"
+	"config"
 	"fmt"
 	"handle"
 	"net"
@@ -17,31 +18,30 @@ type userInfo struct {
 
 func StartUdpServer() {
 	go func() {
-		addr, err := net.ResolveUDPAddr("udp", ":9001")
+		addr, err := net.ResolveUDPAddr("udp", config.GetUdpIp()+":"+config.GetUdpPort())
 		if err != nil {
 			fmt.Println("失败", err)
 		}
-		udplisten, err := net.ListenUDP("udp", addr)
+		udpConn, err := net.ListenUDP("udp", addr)
 		if err != nil {
 			fmt.Println("失败", err)
 		}
 		defer func() {
-			udplisten.Close()
+			udpConn.Close()
 			fmt.Println("udp服务器失败")
 		}()
 
-		var buff = make([]byte, 10000)
+		var buff = make([]byte, 100000)
 
 		for {
-			fmt.Println("逻辑层开始接收消息")
-			n, remoteAddr, err := udplisten.ReadFromUDP(buff)
+			n, remoteAddr, err := udpConn.ReadFromUDP(buff)
 			if err != nil {
 				fmt.Println("", err)
 			} else {
 				buffer := buff[0:n]
 				udpPkg := &bean.UdpProtPkg{}
 				proto.Unmarshal(buffer, udpPkg)
-				handle.Handle(udpPkg, remoteAddr)
+				handle.Handle(udpPkg, remoteAddr, udpConn)
 			}
 
 		}
