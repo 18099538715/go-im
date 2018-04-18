@@ -44,8 +44,9 @@ func StartTcpServer() {
 
 func HandleConnRead(conn *net.TCPConn, connTimeOut int64) {
 	defer handle.CloseConn(conn)
+	//第一次的读超时设置为10s，客户端连接上之后应立即发送登录包，否则30s之后断开连接超时处理，这样做防止恶意新建连接
+	conn.SetReadDeadline(time.Now().Add(time.Second * 30))
 	for {
-		conn.SetReadDeadline(time.Now().Add(time.Minute * time.Duration(connTimeOut)))
 		lengthByte := make([]byte, 4)
 		var length int32
 		_, err := io.ReadFull(conn, lengthByte)
@@ -67,6 +68,7 @@ func HandleConnRead(conn *net.TCPConn, connTimeOut int64) {
 			fmt.Println("读取信息出错3")
 			break
 		}
+		conn.SetReadDeadline(time.Now().Add(time.Minute * time.Duration(connTimeOut)))
 		handle.Handle(tcpPkg, conn)
 	}
 

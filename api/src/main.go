@@ -2,29 +2,16 @@ package main
 
 import (
 	"controller"
+	"net/http"
 
-	"github.com/valyala/fasthttp"
+	"github.com/18099538715/go-rest/webrestful"
 )
 
 func main() {
-	m := func(ctx *fasthttp.RequestCtx) {
-		defer func() {
-			if err := recover(); err != nil {
-				controller.ErrorRes(ctx, err)
-			}
-		}()
-		switch string(ctx.Path()) {
-		case "/user/login":
-			if string(ctx.Method()) == "POST" {
-				controller.UserLogin(ctx)
-			} else {
-				ctx.Error("method is not allowed", fasthttp.StatusMethodNotAllowed)
-			}
-		case "/user/register":
-			controller.UserRegister(ctx)
-		default:
-			ctx.Error("not found", fasthttp.StatusNotFound)
-		}
-	}
-	fasthttp.ListenAndServe(":8081", m)
+
+	handler := webrestful.Handler{}
+	webrestful.Route("/user/register", http.MethodPost, "application/json", controller.UserRegister)
+	webrestful.Route("/user/login", http.MethodPost, "application/json", controller.Login)
+	webrestful.Route("/friends/{userId}", http.MethodGet, "application/json", controller.GetFriends)
+	http.ListenAndServe(":8099", handler)
 }

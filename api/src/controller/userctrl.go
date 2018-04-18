@@ -5,44 +5,49 @@ import (
 	"crypto/md5"
 	"dao"
 	"encoding/hex"
-	"encoding/json"
+	"fmt"
 	"math/rand"
+	"rediscache"
+	"strconv"
 	"time"
-
-	"github.com/valyala/fasthttp"
 )
 
-func UserRegister(ctx *fasthttp.RequestCtx) {
-	body := ctx.Request.Body() //获取post的数据
-	res := &bean.ResInfo{}
-	user := &bean.User{}
-	err := json.Unmarshal(body, user)
-	if err != nil {
-		panic(err)
-	}
+func UserRegister(user *bean.User) *bean.ResInfo {
 	user.Salt = GetRandomString()
 	md5Ctx := md5.New()
 	md5Ctx.Write([]byte(user.Password + user.Salt))
 	cipherStr := md5Ctx.Sum(nil)
 	user.Password = hex.EncodeToString(cipherStr)
 	dao.RegisterUser(user)
-	res.Code = "000001"
+	res := &bean.ResInfo{Code: "000001"}
 	res.Desc = "success"
-	b, err := json.Marshal(res)
-	if err != nil {
-		panic(err)
-	}
-	ctx.Response.SetBody(b)
-	ctx.SetStatusCode(fasthttp.StatusOK)
+	return res
 }
 
-func UserLogin(ctx *fasthttp.RequestCtx) {
-	user := &bean.User{UserId: 1, Token: "aaaa", MobilePhone: "20214305"}
+func Login(loginUser *bean.User) *bean.ResInfo {
+	fmt.Println(loginUser)
 	res := &bean.ResInfo{Code: "000001"}
-	res.Data = user
-	b, _ := json.Marshal(res)
-	ctx.Response.SetBody(b)
-	ctx.SetStatusCode(fasthttp.StatusOK)
+	user := dao.GetUser(loginUser.MobilePhone)
+	md5Ctx := md5.New()
+	md5Ctx.Write([]byte(loginUser.Password + user.Salt))
+	cipherStr := md5Ctx.Sum(nil)
+	pwd := hex.EncodeToString(cipherStr)
+	if user.Password == pwd {
+		userReturn := &bean.User{}
+		res.Desc = "success"
+		userReturn.UserId = user.UserId
+		userReturn.Token = getToken(user.UserId)
+		res.Data = userReturn
+		_, err := rediscache.SetUserToken(user.UserId, userReturn.Token)
+		if err != nil {
+			fmt.Println("登录保存到redis出错", err)
+		}
+	} else {
+		res.Code = "000002"
+		res.Desc = "error"
+	}
+
+	return res
 }
 func GetRandomString() string {
 	str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -54,11 +59,13 @@ func GetRandomString() string {
 	}
 	return string(result)
 }
-
-func ErrorRes(ctx *fasthttp.RequestCtx, err interface{}) {
-	res := &bean.ResInfo{Code: "000002"}
-	res.Data = err
-	b, _ := json.Marshal(res)
-	ctx.Response.SetBody(b)
-	ctx.SetStatusCode(fasthttp.StatusOK)
+func getToken(userId int64) string {
+	crutime := time.Now().Unix()
+	s := strconv.FormatInt(crutime, 10) + strconv.FormatInt(userId, 10)
+	h := md5.New()
+	h.Write([]byte(s))
+	cipherStr := h.Sum(nil)
+	token := hex.EncodeToString(cipherStr)
+	fmt.Println("token--->", token)
+	return token + strconv.FormatInt(crutime, 10)
 }
