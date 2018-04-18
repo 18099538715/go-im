@@ -32,6 +32,7 @@ func StartTcpServer() {
 		connTimeout := config.GetConnTimeOut()
 		for {
 			conn, err := listen.AcceptTCP()
+			fmt.Println("新连接建立")
 			if err != nil {
 				fmt.Println("accept error: ", err)
 				break

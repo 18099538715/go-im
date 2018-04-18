@@ -39,11 +39,14 @@ func init() {
 	}
 }
 func SetOnlineUser(userInfo *bean.UserInfo) (interface{}, error) {
+	fmt.Println(userInfo)
 	a, err := json.Marshal(userInfo)
 	if err != nil {
 		fmt.Println("存储登录用户出错")
 	}
-	return cluster.Do("SET", "onlineinfo_"+strconv.FormatInt(userInfo.UserId, 10), a)
+	c, d := cluster.Do("SET", "onlineinfo_"+strconv.FormatInt(userInfo.UserId, 10), a)
+	fmt.Println(c, d)
+	return c, d
 }
 func DelOnlineUser(userId int64) (interface{}, error) {
 	return cluster.Do("DEL", "onlineinfo_"+strconv.FormatInt(userId, 10))

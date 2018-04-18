@@ -3,7 +3,7 @@
 "reomteUdpPort":"9001",
 "udpIp":"127.0.0.1",
 "udpPort":"9000",
-"tcpIp":"127.0.0.1",
+"tcpIp":"192.168.31.248",
 "tcpPort":"8888",
 "connTimeOut":"1"
 }
