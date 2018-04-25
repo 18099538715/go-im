@@ -42,7 +42,7 @@ func StartUdpServer() {
 				buffer := buff[0:n]
 				udpPkg := &bean.UdpProtPkg{}
 				proto.Unmarshal(buffer, udpPkg)
-				handle.Handle(udpPkg, remoteAddr, udpConn)
+				go handle.Handle(udpPkg, remoteAddr, udpConn)
 			}
 
 		}

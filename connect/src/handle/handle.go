@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"rediscache"
+	"util"
 
 	"github.com/golang/protobuf/proto"
 )
@@ -41,7 +42,7 @@ func loginHandle(tcpPkg *bean.TcpProtPkg, conn *net.TCPConn) {
 		return
 	}
 
-	u := &bean.UserInfo{UserId: loginMsg.GetUserId(), DeviceType: loginMsg.GetDeviceType(), OnlineIp: "127.0.0.1", Port: 9000}
+	u := &bean.UserInfo{UserId: loginMsg.GetUserId(), DeviceType: loginMsg.GetDeviceType(), OnlineIp: util.GetLocalIP(), Port: 9000}
 	_, err = rediscache.SetOnlineUser(u)
 	if err != nil {
 		fmt.Println(err, "redis存储出错了")

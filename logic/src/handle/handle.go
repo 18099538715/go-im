@@ -85,13 +85,7 @@ func msgReq(udpPkg *bean.UdpProtPkg, reomteUdpAddr *net.UDPAddr, udpConn *net.UD
 		fmt.Println("拉取用户消息出错5", err)
 		return
 	}
-	udpclient, err := net.DialUDP("udp", nil, reomteUdpAddr)
-	if err != nil {
-		fmt.Println("udp客户端建立失败", err)
-	}
-	defer udpclient.Close()
-	udpclient.Write(b)
-	udpclient.Close()
+	udpConn.WriteToUDP(b, reomteUdpAddr)
 }
 
 /**

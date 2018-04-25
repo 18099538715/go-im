@@ -1,5 +1,4 @@
 {
-"remoteUdpId":"127.0.0.1",
 "reomteUdpPort":"9001",
 "udpPort":"9000",
 "tcpPort":"8888",
