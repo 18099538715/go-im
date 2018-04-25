@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-var udpIp, tcpIp, remoteUdpId, udpPort, tcpPort string
+var remoteUdpId, udpPort, tcpPort string
 var connTimeOut, reomteUdpPort int64
 
 func init() {
@@ -21,9 +21,7 @@ func init() {
 		fmt.Println("Unmarshal: %v", err)
 		return
 	}
-	udpIp = constantMap["udpIp"]
 	udpPort = constantMap["udpPort"]
-	tcpIp = constantMap["tcpIp"]
 	tcpPort = constantMap["tcpPort"]
 	remoteUdpId = constantMap["remoteUdpId"]
 	connTimeOut, err = strconv.ParseInt(constantMap["connTimeOut"], 10, 64)
@@ -38,15 +36,11 @@ func init() {
 func GetUdpPort() string {
 	return udpPort
 }
-func GetUdpIp() string {
-	return udpIp
-}
+
 func GetTcpPort() string {
 	return tcpPort
 }
-func GetTcpIp() string {
-	return tcpIp
-}
+
 func GetRemoteUdpPort() int {
 	return int(reomteUdpPort)
 }

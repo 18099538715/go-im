@@ -13,7 +13,7 @@ import (
 
 func StartUdpServer() {
 	go func() {
-		addr, err := net.ResolveUDPAddr("udp", config.GetUdpIp()+":"+config.GetUdpPort())
+		addr, err := net.ResolveUDPAddr("udp", util.GetLocalIP()+":"+config.GetUdpPort())
 		if err != nil {
 			fmt.Println("建立连接失败", err)
 		}

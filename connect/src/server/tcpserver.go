@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"time"
+	"util"
 
 	"github.com/golang/protobuf/proto"
 )
@@ -18,7 +19,7 @@ func StartTcpServer() {
 	go func() {
 		//addr, err := net.ResolveTCPAddr("tcp", "192.168.31.248:8888")
 
-		addr, err := net.ResolveTCPAddr("tcp", config.GetTcpIp()+":"+config.GetTcpPort())
+		addr, err := net.ResolveTCPAddr("tcp", util.GetLocalIP()+":"+config.GetTcpPort())
 		if err != nil {
 			fmt.Println("tcp启动失败", err)
 			return

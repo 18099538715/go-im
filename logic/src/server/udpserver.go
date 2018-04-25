@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"handle"
 	"net"
+	"util"
 
 	"github.com/golang/protobuf/proto"
 )
@@ -18,7 +19,7 @@ type userInfo struct {
 
 func StartUdpServer() {
 	go func() {
-		addr, err := net.ResolveUDPAddr("udp", config.GetUdpIp()+":"+config.GetUdpPort())
+		addr, err := net.ResolveUDPAddr("udp", util.GetLocalIP()+":"+config.GetUdpPort())
 		if err != nil {
 			fmt.Println("失败", err)
 		}

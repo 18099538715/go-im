@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 )
 
-var udpIp, udpPort string
+var udpPort string
 
 func init() {
 	var constantMap map[string]string = make(map[string]string)
@@ -19,12 +19,8 @@ func init() {
 		fmt.Println("Unmarshal: %v", err)
 		return
 	}
-	udpIp = constantMap["udpIp"]
 	udpPort = constantMap["udpPort"]
 }
 func GetUdpPort() string {
 	return udpPort
-}
-func GetUdpIp() string {
-	return udpIp
 }
