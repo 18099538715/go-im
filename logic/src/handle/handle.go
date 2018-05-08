@@ -145,5 +145,6 @@ func msgInform(userId int64, srlNo int64, udpConn *net.UDPConn) {
 	b, _ := proto.Marshal(inForm)
 	res := &bean.UdpProtPkg{ToUserId: userId, Content: b, PkgType: int32(bean.PkgTypeEnum_MSG_INFORM)}
 	t, _ := proto.Marshal(res)
+	fmt.Println(u.OnlineIp, u.Port)
 	udpConn.WriteToUDP(t, &net.UDPAddr{IP: net.ParseIP(u.OnlineIp), Port: u.Port})
 }

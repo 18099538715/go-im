@@ -2,5 +2,5 @@
 "reomteUdpPort":"9001",
 "udpPort":"9000",
 "tcpPort":"8888",
-"connTimeOut":"1"
+"connTimeOut":"5"
 }

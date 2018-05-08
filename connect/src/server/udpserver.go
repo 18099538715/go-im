@@ -41,6 +41,7 @@ func receive(udpconn *net.UDPConn) {
 			fmt.Println("udp接收包错误", err)
 			continue
 		}
+		fmt.Println("逻辑层发过来的消息：", pkg.PkgType)
 		tcpPkg := &bean.TcpProtPkg{PkgType: pkg.PkgType, Content: pkg.Content}
 		if conn, ok := handle.UserCache[pkg.GetToUserId()]; ok {
 			b, _ := proto.Marshal(tcpPkg)
