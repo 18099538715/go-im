@@ -39,7 +39,7 @@ func msgReqAck(udpPkg *bean.UdpProtPkg, reomteUdpAddr *net.UDPAddr, udpConn *net
 }
 
 /**
-处理消息请求
+处理消息请求,暂时只支持从最新消息拉取最近几条
 **/
 func msgReq(udpPkg *bean.UdpProtPkg, reomteUdpAddr *net.UDPAddr, udpConn *net.UDPConn) {
 	msg := &bean.MsgReq{}
@@ -48,14 +48,15 @@ func msgReq(udpPkg *bean.UdpProtPkg, reomteUdpAddr *net.UDPAddr, udpConn *net.UD
 		fmt.Println("拉取用户消息出错1", err)
 		return
 	}
-	srlNos := make([]int64, msg.GetPageSize())
 	currentSrlNo, err := rediscache.GetCurrentUserSrlNo(msg.GetUserId())
-	if currentSrlNo < msg.GetSrlNo() {
-		currentSrlNo = msg.GetSrlNo()
+	pageSize := msg.GetSrlNo() - currentSrlNo
+	if pageSize > msg.GetPageSize() {
+		pageSize = msg.GetPageSize()
 	}
+	srlNos := make([]int64, pageSize)
 	fmt.Println("当前用户的srlNo:", currentSrlNo)
 	for index, _ := range srlNos {
-		srlNos[index] = currentSrlNo + int64(index+1)
+		srlNos[index] = msg.GetSrlNo() - index
 	}
 	msgs, err := rediscache.GetUserMsgs(msg.GetUserId(), srlNos)
 	if err != nil {
