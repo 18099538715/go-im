@@ -50,13 +50,13 @@ func msgReq(udpPkg *bean.UdpProtPkg, reomteUdpAddr *net.UDPAddr, udpConn *net.UD
 	}
 	currentSrlNo, err := rediscache.GetCurrentUserSrlNo(msg.GetUserId())
 	pageSize := msg.GetSrlNo() - currentSrlNo
-	if pageSize > msg.GetPageSize() {
-		pageSize = msg.GetPageSize()
+	if pageSize > int64(msg.GetPageSize()) {
+		pageSize = int64(msg.GetPageSize())
 	}
 	srlNos := make([]int64, pageSize)
 	fmt.Println("当前用户的srlNo:", currentSrlNo)
 	for index, _ := range srlNos {
-		srlNos[index] = msg.GetSrlNo() - index
+		srlNos[index] = msg.GetSrlNo() - int64(index)
 	}
 	msgs, err := rediscache.GetUserMsgs(msg.GetUserId(), srlNos)
 	if err != nil {
